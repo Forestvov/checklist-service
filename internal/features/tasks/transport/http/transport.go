@@ -23,6 +23,11 @@ type TasksService interface {
 		ctx context.Context,
 		paginationParams core_pagination.Params,
 	) (core_pagination.Result[core_domain.Task], error)
+
+	GetTask(
+		ctx context.Context,
+		taskID int,
+	) (core_domain.Task, error)
 }
 
 func NewTasksHTTPHandler(tasksService TasksService) *TasksHTTPHandler {
@@ -42,6 +47,11 @@ func (h *TasksHTTPHandler) Routes() []core_http_server.Route {
 			Method:  http.MethodGet,
 			Path:    "/tasks",
 			Handler: h.GetTasks,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/tasks/{id}",
+			Handler: h.GetTask,
 		},
 	}
 }

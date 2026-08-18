@@ -21,6 +21,11 @@ type TaskRepository interface {
 		ctx context.Context,
 		paginationParams core_pagination.Params,
 	) (core_pagination.Result[core_domain.Task], error)
+
+	GetTask(
+		ctx context.Context,
+		taskID int,
+	) (core_domain.Task, error)
 }
 
 func NewTaskService(

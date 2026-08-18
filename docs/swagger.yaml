@@ -56,6 +56,21 @@ definitions:
       updated_at:
         type: string
     type: object
+  internal_features_tasks_transport_http.GetTaskResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      done:
+        type: boolean
+      id:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
   internal_features_tasks_transport_http.GetTasksResponse:
     properties:
       data:
@@ -151,6 +166,39 @@ paths:
           schema:
             $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
       summary: Create a task
+      tags:
+      - tasks
+  /api/v1/tasks/{id}:
+    get:
+      description: |-
+        Returns a single task with the specified integer identifier.
+        Returns 404 when the task does not exist.
+      parameters:
+      - description: Task identifier
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task found
+          schema:
+            $ref: '#/definitions/internal_features_tasks_transport_http.GetTaskResponse'
+        "400":
+          description: Task identifier is not a valid integer
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Unexpected server error
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+      summary: Get a task
       tags:
       - tasks
 swagger: "2.0"
