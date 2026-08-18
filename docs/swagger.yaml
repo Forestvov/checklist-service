@@ -23,6 +23,21 @@ definitions:
         example: 3
         type: integer
     type: object
+  internal_features_tasks_transport_http.CompleteTaskResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      done:
+        type: boolean
+      id:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
   internal_features_tasks_transport_http.CreateTaskRequest:
     properties:
       description:
@@ -169,6 +184,34 @@ paths:
       tags:
       - tasks
   /api/v1/tasks/{id}:
+    delete:
+      description: |-
+        Permanently deletes the task with the specified integer identifier.
+        A successful deletion returns 204 with an empty response body.
+      parameters:
+      - description: Task identifier
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Task deleted successfully
+        "400":
+          description: Task identifier is not a valid integer
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Unexpected server error
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+      summary: Delete a task
+      tags:
+      - tasks
     get:
       description: |-
         Returns a single task with the specified integer identifier.
@@ -199,6 +242,38 @@ paths:
           schema:
             $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
       summary: Get a task
+      tags:
+      - tasks
+    patch:
+      description: |-
+        Marks the task with the specified integer identifier as completed.
+        Returns the updated task with done=true and a refreshed updated_at timestamp.
+      parameters:
+      - description: Task identifier
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task completed successfully
+          schema:
+            $ref: '#/definitions/internal_features_tasks_transport_http.CompleteTaskResponse'
+        "400":
+          description: Task identifier is not a valid integer
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Unexpected server error
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+      summary: Complete a task
       tags:
       - tasks
 swagger: "2.0"

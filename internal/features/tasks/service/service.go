@@ -26,6 +26,16 @@ type TaskRepository interface {
 		ctx context.Context,
 		taskID int,
 	) (core_domain.Task, error)
+
+	CompleteTask(
+		ctx context.Context,
+		taskID int64,
+	) (core_domain.Task, error)
+
+	DeleteTask(
+		ctx context.Context,
+		taskID int64,
+	) error
 }
 
 func NewTaskService(

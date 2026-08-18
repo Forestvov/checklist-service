@@ -144,6 +144,90 @@
                         }
                     }
                 }
+            },
+            "delete": {
+                "description": "Permanently deletes the task with the specified integer identifier.\nA successful deletion returns 204 with an empty response body.",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Delete a task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Task identifier",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Task deleted successfully"
+                    },
+                    "400": {
+                        "description": "Task identifier is not a valid integer",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Task not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Marks the task with the specified integer identifier as completed.\nReturns the updated task with done=true and a refreshed updated_at timestamp.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Complete a task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Task identifier",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Task completed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/internal_features_tasks_transport_http.CompleteTaskResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Task identifier is not a valid integer",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Task not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    }
+                }
             }
         }
     },
@@ -179,6 +263,29 @@
                 "total_pages": {
                     "type": "integer",
                     "example": 3
+                }
+            }
+        },
+        "internal_features_tasks_transport_http.CompleteTaskResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "done": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
