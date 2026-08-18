@@ -25,3 +25,13 @@ func taskDTOFromDomain(task core_domain.Task) TaskDTOResponse {
 		UpdatedAt:   task.UpdateAt,
 	}
 }
+
+func tasksDTOsFromDomain(tasks []core_domain.Task) []TaskDTOResponse {
+	dtos := make([]TaskDTOResponse, len(tasks))
+
+	for i, task := range tasks {
+		dtos[i] = taskDTOFromDomain(task)
+	}
+
+	return dtos
+}
