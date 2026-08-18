@@ -1,0 +1,80 @@
+definitions:
+  github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse:
+    properties:
+      error:
+        example: full error text
+        type: string
+      message:
+        example: short human-readable message
+        type: string
+    type: object
+  internal_features_tasks_transport_http.CreateTaskRequest:
+    properties:
+      description:
+        description: Description is optional and may contain up to 5000 Unicode characters.
+        example: Milk, bread, and vegetables
+        maxLength: 5000
+        type: string
+      title:
+        description: |-
+          Title is required and must contain between 3 and 255 Unicode characters
+          after leading and trailing whitespace is ignored.
+        example: Buy groceries
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - title
+    type: object
+  internal_features_tasks_transport_http.CreateTaskResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      done:
+        type: boolean
+      id:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/tasks:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates a new task with a required title and an optional description.
+        The title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.
+        The description may be omitted and must not exceed 5000 Unicode characters when provided.
+      parameters:
+      - description: Task creation data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/internal_features_tasks_transport_http.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Task created successfully
+          schema:
+            $ref: '#/definitions/internal_features_tasks_transport_http.CreateTaskResponse'
+        "400":
+          description: Malformed JSON or request validation failed
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Unexpected server error
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+      summary: Create a task
+      tags:
+      - tasks
+swagger: "2.0"

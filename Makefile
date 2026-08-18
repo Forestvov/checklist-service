@@ -53,3 +53,29 @@ migrate-up:
 
 migrate-down:
 	@make migrate-action action=down
+
+logs-cleanup:
+	@read -p "Очистить все log файлы? Опасность утери логов! [y/N]: " ans; \
+		if [ "$$ans" = "y" ]; then \
+				rm -rf ${PROJECT_ROOT}/out/logs && \
+				echo "Файлы логов очищены"; \
+		else \
+				echo "Очистка логов отменена"; \
+		fi
+
+swagger-gen:
+	@docker compose run --rm swagger \
+		init \
+		-g cmd/app/main.go \
+		-o docs \
+		--parseInternal \
+		--parseDependency
+
+up-run:
+	@export LOGGER_FOLDER=${PROJECT_ROOT}/out/logs && \
+	export POSTGRES_HOST=localhost && \
+	go mod tidy && \
+	go run ${PROJECT_ROOT}/cmd/app/main.go
+
+ps:
+	@docker compose ps
