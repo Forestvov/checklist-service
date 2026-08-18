@@ -5,15 +5,23 @@ import (
 	"fmt"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
+	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
 )
 
 func (s *TaskService) GetTasks(
 	ctx context.Context,
-) ([]core_domain.Task, error) {
-	tasks, err := s.taskRepository.GetTasks(ctx)
+	paginationParams core_pagination.Params,
+) (core_pagination.Result[core_domain.Task], error) {
+	result, err := s.taskRepository.GetTasks(
+		ctx,
+		paginationParams,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("get tasks from repository: %w", err)
+		return core_pagination.Result[core_domain.Task]{}, fmt.Errorf(
+			"get tasks from repository: %w",
+			err,
+		)
 	}
 
-	return tasks, nil
+	return result, nil
 }

@@ -8,6 +8,21 @@ definitions:
         example: short human-readable message
         type: string
     type: object
+  github_com_Forestvov_checklist-service_internal_core_transport_http_response.PaginationMeta:
+    properties:
+      page:
+        example: 2
+        type: integer
+      per_page:
+        example: 20
+        type: integer
+      total:
+        example: 47
+        type: integer
+      total_pages:
+        example: 3
+        type: integer
+    type: object
   internal_features_tasks_transport_http.CreateTaskRequest:
     properties:
       description:
@@ -41,10 +56,71 @@ definitions:
       updated_at:
         type: string
     type: object
+  internal_features_tasks_transport_http.GetTasksResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_features_tasks_transport_http.TaskDTOResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.PaginationMeta'
+    type: object
+  internal_features_tasks_transport_http.TaskDTOResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      done:
+        type: boolean
+      id:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
   /api/v1/tasks:
+    get:
+      description: |-
+        Returns tasks ordered from newest to oldest using page-based pagination.
+        If page or per_page is omitted, the defaults are page=1 and per_page=20.
+        A page beyond the available range returns an empty data array with the requested pagination metadata.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Number of tasks per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated task list
+          schema:
+            $ref: '#/definitions/internal_features_tasks_transport_http.GetTasksResponse'
+        "400":
+          description: Invalid pagination parameters
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "500":
+          description: Unexpected server error
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+      summary: Get tasks
+      tags:
+      - tasks
     post:
       consumes:
       - application/json

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
+	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
 )
 
 type TaskService struct {
@@ -18,7 +19,8 @@ type TaskRepository interface {
 
 	GetTasks(
 		ctx context.Context,
-	) ([]core_domain.Task, error)
+		paginationParams core_pagination.Params,
+	) (core_pagination.Result[core_domain.Task], error)
 }
 
 func NewTaskService(

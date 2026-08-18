@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
+	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
 	core_http_server "github.com/Forestvov/checklist-service/internal/core/transport/http/server"
 )
 
@@ -20,7 +21,8 @@ type TasksService interface {
 
 	GetTasks(
 		ctx context.Context,
-	) ([]core_domain.Task, error)
+		paginationParams core_pagination.Params,
+	) (core_pagination.Result[core_domain.Task], error)
 }
 
 func NewTasksHTTPHandler(tasksService TasksService) *TasksHTTPHandler {

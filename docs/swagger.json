@@ -5,6 +5,55 @@
     },
     "paths": {
         "/api/v1/tasks": {
+            "get": {
+                "description": "Returns tasks ordered from newest to oldest using page-based pagination.\nIf page or per_page is omitted, the defaults are page=1 and per_page=20.\nA page beyond the available range returns an empty data array with the requested pagination metadata.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Get tasks",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Number of tasks per page",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated task list",
+                        "schema": {
+                            "$ref": "#/definitions/internal_features_tasks_transport_http.GetTasksResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid pagination parameters",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Creates a new task with a required title and an optional description.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.\nThe description may be omitted and must not exceed 5000 Unicode characters when provided.",
                 "consumes": [
@@ -65,6 +114,27 @@
                 }
             }
         },
+        "github_com_Forestvov_checklist-service_internal_core_transport_http_response.PaginationMeta": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "per_page": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 47
+                },
+                "total_pages": {
+                    "type": "integer",
+                    "example": 3
+                }
+            }
+        },
         "internal_features_tasks_transport_http.CreateTaskRequest": {
             "type": "object",
             "required": [
@@ -87,6 +157,43 @@
             }
         },
         "internal_features_tasks_transport_http.CreateTaskResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "done": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_features_tasks_transport_http.GetTasksResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_features_tasks_transport_http.TaskDTOResponse"
+                    }
+                },
+                "meta": {
+                    "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.PaginationMeta"
+                }
+            }
+        },
+        "internal_features_tasks_transport_http.TaskDTOResponse": {
             "type": "object",
             "properties": {
                 "created_at": {

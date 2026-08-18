@@ -5,26 +5,43 @@ import (
 	"fmt"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
+	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
 )
 
 func (r *TasksRepository) GetTasks(
 	ctx context.Context,
-) ([]core_domain.Task, error) {
+	paginationParams core_pagination.Params,
+) (core_pagination.Result[core_domain.Task], error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
 
-	sql := `
-	SELECT id, title, description, done, created_at, updated_at
-	FROM checklist.tasks
-	ORDER BY id DESC;
+	var emptyResult core_pagination.Result[core_domain.Task]
+
+	countSQL := `
+		SELECT COUNT(*)
+		FROM checklist.tasks;
+	`
+
+	var total int64
+	if err := r.pool.QueryRow(ctx, countSQL).Scan(&total); err != nil {
+		return emptyResult, fmt.Errorf("count tasks: %w", err)
+	}
+
+	selectSQL := `
+		SELECT id, title, description, done, created_at, updated_at
+		FROM checklist.tasks
+		ORDER BY id DESC
+		LIMIT $1 OFFSET $2;
 	`
 
 	rows, err := r.pool.Query(
 		ctx,
-		sql,
+		selectSQL,
+		paginationParams.Limit(),
+		paginationParams.Offset(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("select tasks: %w", err)
+		return emptyResult, fmt.Errorf("select tasks: %w", err)
 	}
 	defer rows.Close()
 
@@ -41,16 +58,22 @@ func (r *TasksRepository) GetTasks(
 			&taskModel.UpdateAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("scan tasks: %w", err)
+			return emptyResult, fmt.Errorf("scan tasks: %w", err)
 		}
 
 		taskModels = append(taskModels, taskModel)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("next rows: %w", err)
+		return emptyResult, fmt.Errorf("next rows: %w", err)
 	}
 
-	taskDomain := taskDomainFromModels(taskModels)
+	taskDomains := taskDomainFromModels(taskModels)
 
-	return taskDomain, nil
+	result := core_pagination.NewResult(
+		taskDomains,
+		total,
+		paginationParams,
+	)
+
+	return result, nil
 }

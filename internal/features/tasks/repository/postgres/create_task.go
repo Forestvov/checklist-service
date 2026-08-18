@@ -2,12 +2,9 @@ package tasks_postgres_repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
-	core_errors "github.com/Forestvov/checklist-service/internal/core/errors"
-	core_postgres_pool "github.com/Forestvov/checklist-service/internal/core/repository/postgres/pool"
 )
 
 func (r *TasksRepository) CreateTask(
@@ -43,13 +40,7 @@ func (r *TasksRepository) CreateTask(
 		&taskModel.UpdateAt,
 	)
 	if err != nil {
-		if errors.Is(err, core_postgres_pool.ErrViolatesForeignKey) {
-			return core_domain.Task{}, fmt.Errorf(
-				"%v: task with id ='%d': %w",
-				err,
-				core_errors.ErrNotFound,
-			)
-		}
+		return core_domain.Task{}, fmt.Errorf("create task: %w", err)
 	}
 
 	taskDomain := core_domain.NewTask(
