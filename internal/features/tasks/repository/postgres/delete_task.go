@@ -20,10 +20,10 @@ func (r *TasksRepository) DeleteTask(
 
 	cmdTag, err := r.pool.Exec(ctx, sql, taskID)
 	if err != nil {
-		return fmt.Errorf("exec query: %w", err)
+		return fmt.Errorf("execute delete task query: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
-		return fmt.Errorf("task with id='%d': %w", taskID, core_errors.ErrNotFound)
+		return fmt.Errorf("task with id=%d: %w", taskID, core_errors.ErrNotFound)
 	}
 
 	return nil

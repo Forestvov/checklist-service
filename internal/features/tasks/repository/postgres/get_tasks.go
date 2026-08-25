@@ -55,7 +55,7 @@ func (r *TasksRepository) GetTasks(
 			&taskModel.Description,
 			&taskModel.Done,
 			&taskModel.CreatedAt,
-			&taskModel.UpdateAt,
+			&taskModel.UpdatedAt,
 		)
 		if err != nil {
 			return emptyResult, fmt.Errorf("scan tasks: %w", err)
@@ -64,7 +64,7 @@ func (r *TasksRepository) GetTasks(
 		taskModels = append(taskModels, taskModel)
 	}
 	if err := rows.Err(); err != nil {
-		return emptyResult, fmt.Errorf("next rows: %w", err)
+		return emptyResult, fmt.Errorf("iterate task rows: %w", err)
 	}
 
 	taskDomains := taskDomainFromModels(taskModels)

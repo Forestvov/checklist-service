@@ -15,7 +15,7 @@ type Task struct {
 	Description string
 	Done        bool
 	CreatedAt   time.Time
-	UpdateAt    time.Time
+	UpdatedAt   time.Time
 }
 
 func NewTask(
@@ -24,7 +24,7 @@ func NewTask(
 	description string,
 	done bool,
 	createdAt time.Time,
-	updateAt time.Time,
+	updatedAt time.Time,
 ) Task {
 	return Task{
 		ID:          id,
@@ -32,7 +32,7 @@ func NewTask(
 		Description: description,
 		Done:        done,
 		CreatedAt:   createdAt,
-		UpdateAt:    updateAt,
+		UpdatedAt:   updatedAt,
 	}
 }
 
@@ -45,13 +45,15 @@ func NewTaskUninitialized(
 		descriptionValue = *description
 	}
 
+	now := time.Now()
+
 	return NewTask(
-		int64(UninitializedID),
+		UninitializedID,
 		title,
 		descriptionValue,
 		false,
-		time.Now(),
-		time.Now(),
+		now,
+		now,
 	)
 }
 

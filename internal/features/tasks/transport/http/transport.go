@@ -26,7 +26,7 @@ type TasksService interface {
 
 	GetTask(
 		ctx context.Context,
-		taskID int,
+		taskID int64,
 	) (core_domain.Task, error)
 
 	CompleteTask(

@@ -9,7 +9,7 @@ import (
 
 func (s *TaskService) GetTask(
 	ctx context.Context,
-	taskID int,
+	taskID int64,
 ) (core_domain.Task, error) {
 	task, err := s.taskRepository.GetTask(ctx, taskID)
 	if err != nil {

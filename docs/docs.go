@@ -248,7 +248,7 @@ const docTemplate = `{
             "properties": {
                 "error": {
                     "type": "string",
-                    "example": "full error text"
+                    "example": "invalid argument"
                 },
                 "message": {
                     "type": "string",

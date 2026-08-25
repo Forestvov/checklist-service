@@ -22,7 +22,7 @@ func taskDTOFromDomain(task core_domain.Task) TaskDTOResponse {
 		Description: task.Description,
 		Done:        task.Done,
 		CreatedAt:   task.CreatedAt,
-		UpdatedAt:   task.UpdateAt,
+		UpdatedAt:   task.UpdatedAt,
 	}
 }
 

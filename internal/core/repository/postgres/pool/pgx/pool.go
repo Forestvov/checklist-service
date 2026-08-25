@@ -1,4 +1,4 @@
-package core_px_pool
+package core_pgx_pool
 
 import (
 	"context"
@@ -18,21 +18,21 @@ func NewPool(
 	ctx context.Context,
 	config Config,
 ) (*Pool, error) {
-	connectString := fmt.Sprintf(
+	connectionString := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		config.User,
 		config.Password,
 		config.Host,
 		config.Port,
-		config.DataBase,
+		config.Database,
 	)
 
-	pgxconfig, err := pgxpool.ParseConfig(connectString)
+	pgxConfig, err := pgxpool.ParseConfig(connectionString)
 	if err != nil {
 		return nil, fmt.Errorf("parse pgx config: %w", err)
 	}
 
-	pool, err := pgxpool.NewWithConfig(ctx, pgxconfig)
+	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
 	if err != nil {
 		return nil, fmt.Errorf("create pgxpool: %w", err)
 	}

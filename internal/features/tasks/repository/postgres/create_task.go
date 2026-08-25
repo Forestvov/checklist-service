@@ -27,7 +27,7 @@ func (r *TasksRepository) CreateTask(
 		task.Description,
 		task.Done,
 		task.CreatedAt,
-		task.UpdateAt,
+		task.UpdatedAt,
 	)
 
 	var taskModel TaskModel
@@ -37,10 +37,10 @@ func (r *TasksRepository) CreateTask(
 		&taskModel.Description,
 		&taskModel.Done,
 		&taskModel.CreatedAt,
-		&taskModel.UpdateAt,
+		&taskModel.UpdatedAt,
 	)
 	if err != nil {
-		return core_domain.Task{}, fmt.Errorf("create task: %w", err)
+		return core_domain.Task{}, fmt.Errorf("scan created task: %w", err)
 	}
 
 	taskDomain := core_domain.NewTask(
@@ -49,7 +49,7 @@ func (r *TasksRepository) CreateTask(
 		taskModel.Description,
 		taskModel.Done,
 		taskModel.CreatedAt,
-		taskModel.UpdateAt,
+		taskModel.UpdatedAt,
 	)
 
 	return taskDomain, nil

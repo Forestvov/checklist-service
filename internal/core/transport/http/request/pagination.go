@@ -8,7 +8,7 @@ import (
 )
 
 func GetPaginationParams(r *http.Request) (core_pagination.Params, error) {
-	page, err := GetIntQueryParams(r, "page")
+	page, err := GetIntQueryParam(r, "page")
 	if err != nil {
 		return core_pagination.Params{}, fmt.Errorf(
 			"get page query parameter: %w",
@@ -16,7 +16,7 @@ func GetPaginationParams(r *http.Request) (core_pagination.Params, error) {
 		)
 	}
 
-	perPage, err := GetIntQueryParams(r, "per_page")
+	perPage, err := GetIntQueryParam(r, "per_page")
 	if err != nil {
 		return core_pagination.Params{}, fmt.Errorf(
 			"get per_page query parameter: %w",

@@ -12,7 +12,7 @@ import (
 
 func (r *TasksRepository) GetTask(
 	ctx context.Context,
-	taskID int,
+	taskID int64,
 ) (core_domain.Task, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
@@ -32,18 +32,18 @@ func (r *TasksRepository) GetTask(
 		&taskModel.Description,
 		&taskModel.Done,
 		&taskModel.CreatedAt,
-		&taskModel.UpdateAt,
+		&taskModel.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, core_postgres_pool.ErrNoRows) {
 			return core_domain.Task{}, fmt.Errorf(
-				"task witch id='%d': %w",
+				"task with id=%d: %w",
 				taskID,
 				core_errors.ErrNotFound,
 			)
 		}
 
-		return core_domain.Task{}, fmt.Errorf("scan error: %w", err)
+		return core_domain.Task{}, fmt.Errorf("scan task: %w", err)
 	}
 
 	taskDomain := taskDomainFromModel(taskModel)

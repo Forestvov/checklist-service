@@ -33,18 +33,18 @@ func (r *TasksRepository) CompleteTask(
 		&taskModel.Description,
 		&taskModel.Done,
 		&taskModel.CreatedAt,
-		&taskModel.UpdateAt,
+		&taskModel.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, core_postgres_pool.ErrNoRows) {
 			return core_domain.Task{}, fmt.Errorf(
-				"task with id='%d': %w",
+				"task with id=%d: %w",
 				taskID,
 				core_errors.ErrNotFound,
 			)
 		}
 
-		return core_domain.Task{}, fmt.Errorf("complete task: %w", err)
+		return core_domain.Task{}, fmt.Errorf("scan completed task: %w", err)
 	}
 
 	return taskDomainFromModel(taskModel), nil

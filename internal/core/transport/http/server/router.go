@@ -7,22 +7,22 @@ import (
 	core_http_middleware "github.com/Forestvov/checklist-service/internal/core/transport/http/middleware"
 )
 
-type ApiVersion string
+type APIVersion string
 
-var (
-	ApiVersion1 = ApiVersion("v1")
-	ApiVersion2 = ApiVersion("v2")
-	ApiVersion3 = ApiVersion("v3")
+const (
+	APIVersion1 APIVersion = "v1"
+	APIVersion2 APIVersion = "v2"
+	APIVersion3 APIVersion = "v3"
 )
 
 type APIVersionRouter struct {
 	*http.ServeMux
-	apiVersion ApiVersion
+	apiVersion APIVersion
 	middleware []core_http_middleware.Middleware
 }
 
 func NewAPIVersionRouter(
-	apiVersion ApiVersion,
+	apiVersion APIVersion,
 	middleware ...core_http_middleware.Middleware,
 ) *APIVersionRouter {
 	return &APIVersionRouter{
@@ -34,9 +34,9 @@ func NewAPIVersionRouter(
 
 func (r *APIVersionRouter) RegisterRoutes(routes ...Route) {
 	for _, route := range routes {
-		patter := fmt.Sprintf("%s %s", route.Method, route.Path)
+		pattern := fmt.Sprintf("%s %s", route.Method, route.Path)
 
-		r.Handle(patter, route.WithMiddleware())
+		r.Handle(pattern, route.WithMiddleware())
 	}
 }
 

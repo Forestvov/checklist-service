@@ -28,15 +28,15 @@ func (h *TasksHTTPHandler) DeleteTask(
 	logger := core_logger.FromContext(ctx)
 	responseHandler := core_http_response.NewHTTPResponseHandler(logger, rw)
 
-	taskId, err := core_http_request.GetIntPathValue(r, "id")
+	taskID, err := core_http_request.GetInt64PathValue(r, "id")
 	if err != nil {
-		responseHandler.ErrorResponse(err, "failed to get taskId path value")
+		responseHandler.ErrorResponse(err, "failed to get task ID path value")
 		return
 	}
 
 	if err := h.tasksService.DeleteTask(
 		ctx,
-		int64(taskId),
+		taskID,
 	); err != nil {
 		responseHandler.ErrorResponse(err, "failed to delete task")
 		return

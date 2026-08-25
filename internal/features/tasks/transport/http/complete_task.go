@@ -31,13 +31,13 @@ func (h *TasksHTTPHandler) CompleteTask(
 	logger := core_logger.FromContext(ctx)
 	responseHandler := core_http_response.NewHTTPResponseHandler(logger, rw)
 
-	taskId, err := core_http_request.GetIntPathValue(r, "id")
+	taskID, err := core_http_request.GetInt64PathValue(r, "id")
 	if err != nil {
-		responseHandler.ErrorResponse(err, "failed to get taskId path value")
+		responseHandler.ErrorResponse(err, "failed to get task ID path value")
 		return
 	}
 
-	taskDomain, err := h.tasksService.CompleteTask(ctx, int64(taskId))
+	taskDomain, err := h.tasksService.CompleteTask(ctx, taskID)
 	if err != nil {
 		responseHandler.ErrorResponse(err, "failed to complete task")
 		return

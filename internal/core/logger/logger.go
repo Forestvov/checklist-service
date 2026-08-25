@@ -48,7 +48,7 @@ func NewLogger(config Config) (*Logger, error) {
 	}
 
 	if err := os.MkdirAll(config.Folder, 0755); err != nil {
-		return nil, fmt.Errorf("mkdir log folder %w", err)
+		return nil, fmt.Errorf("mkdir log folder: %w", err)
 	}
 
 	timestamp := time.Now().UTC().Format("2006-01-02T15-04-05.000000")
@@ -59,7 +59,7 @@ func NewLogger(config Config) (*Logger, error) {
 
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return nil, fmt.Errorf("open log file %w", err)
+		return nil, fmt.Errorf("open log file: %w", err)
 	}
 
 	zapConfig := zap.NewDevelopmentEncoderConfig()

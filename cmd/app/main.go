@@ -10,7 +10,7 @@ import (
 
 	core_config "github.com/Forestvov/checklist-service/internal/core/config"
 	core_logger "github.com/Forestvov/checklist-service/internal/core/logger"
-	core_px_pool "github.com/Forestvov/checklist-service/internal/core/repository/postgres/pool/pgx"
+	core_pgx_pool "github.com/Forestvov/checklist-service/internal/core/repository/postgres/pool/pgx"
 	core_http_middleware "github.com/Forestvov/checklist-service/internal/core/transport/http/middleware"
 	core_http_server "github.com/Forestvov/checklist-service/internal/core/transport/http/server"
 	tasks_postgres_repository "github.com/Forestvov/checklist-service/internal/features/tasks/repository/postgres"
@@ -39,9 +39,9 @@ func main() {
 	logger.Debug("application time zone", zap.Any("zone", time.Local))
 
 	logger.Debug("initializing postgres connection pool")
-	pool, err := core_px_pool.NewPool(
+	pool, err := core_pgx_pool.NewPool(
 		ctx,
-		core_px_pool.NewConfigMust(),
+		core_pgx_pool.NewConfigMust(),
 	)
 	if err != nil {
 		logger.Fatal("failed to init postgres connection pool", zap.Error(err))
@@ -56,7 +56,7 @@ func main() {
 	logger.Debug("initializing HTTP server")
 	httpConfig := core_http_server.NewConfigMust()
 	httpServer := core_http_server.NewHTTPServer(
-		core_http_server.NewConfigMust(),
+		httpConfig,
 		logger,
 		core_http_middleware.CORS(httpConfig.AllowedOrigins),
 		core_http_middleware.RequestID(),
@@ -65,10 +65,11 @@ func main() {
 		core_http_middleware.Panic(),
 	)
 
-	apiVersionRouter := core_http_server.NewAPIVersionRouter(core_http_server.ApiVersion1)
+	apiVersionRouter := core_http_server.NewAPIVersionRouter(core_http_server.APIVersion1)
 	apiVersionRouter.RegisterRoutes(tasksTransportHttp.Routes()...)
 
 	httpServer.RegisterAPIRouters(apiVersionRouter)
+	httpServer.RegisterHealth(pool)
 	httpServer.RegisterSwagger()
 
 	if err := httpServer.Run(ctx); err != nil {

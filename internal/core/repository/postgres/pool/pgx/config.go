@@ -1,4 +1,4 @@
-package core_px_pool
+package core_pgx_pool
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type Config struct {
 	Port     string        `envconfig:"PORT" default:"5432"`
 	User     string        `envconfig:"USER" required:"true"`
 	Password string        `envconfig:"PASSWORD" required:"true"`
-	DataBase string        `envconfig:"DB" required:"true"`
+	Database string        `envconfig:"DB" required:"true"`
 	Timeout  time.Duration `envconfig:"TIMEOUT" required:"true"`
 }
 
@@ -29,7 +29,7 @@ func NewConfig() (Config, error) {
 func NewConfigMust() Config {
 	config, err := NewConfig()
 	if err != nil {
-		err = fmt.Errorf("get Postgres connection pool config %w", err)
+		err = fmt.Errorf("get Postgres connection pool config: %w", err)
 		panic(err)
 	}
 

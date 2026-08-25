@@ -9,7 +9,7 @@ import (
 	core_errors "github.com/Forestvov/checklist-service/internal/core/errors"
 )
 
-func GetIntQueryParams(r *http.Request, key string) (*int, error) {
+func GetIntQueryParam(r *http.Request, key string) (*int, error) {
 	param := r.URL.Query().Get(key)
 	if param == "" {
 		return nil, nil
@@ -26,10 +26,10 @@ func GetIntQueryParams(r *http.Request, key string) (*int, error) {
 		)
 	}
 
-	return &val, err
+	return &val, nil
 }
 
-func GetDateQueryParams(r *http.Request, key string) (*time.Time, error) {
+func GetDateQueryParam(r *http.Request, key string) (*time.Time, error) {
 	param := r.URL.Query().Get(key)
 	if param == "" {
 		return nil, nil
@@ -48,5 +48,5 @@ func GetDateQueryParams(r *http.Request, key string) (*time.Time, error) {
 		)
 	}
 
-	return &date, err
+	return &date, nil
 }

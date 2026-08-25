@@ -13,7 +13,7 @@ type Route struct {
 	Middleware []core_http_middleware.Middleware
 }
 
-func (r *Route) WithMiddleware() http.Handler {
+func (r Route) WithMiddleware() http.Handler {
 	return core_http_middleware.ChainMiddleware(
 		r.Handler,
 		r.Middleware...,

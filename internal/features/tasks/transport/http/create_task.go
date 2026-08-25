@@ -19,6 +19,15 @@ type CreateTaskRequest struct {
 
 type CreateTaskResponse TaskDTOResponse
 
+func (request CreateTaskRequest) Validate() error {
+	task := core_domain.NewTaskUninitialized(
+		request.Title,
+		request.Description,
+	)
+
+	return task.Validate()
+}
+
 // CreateTask creates a new task.
 //
 // @Summary Create a task

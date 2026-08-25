@@ -12,7 +12,7 @@ type TaskModel struct {
 	Description string
 	Done        bool
 	CreatedAt   time.Time
-	UpdateAt    time.Time
+	UpdatedAt   time.Time
 }
 
 func taskDomainFromModel(taskModel TaskModel) core_domain.Task {
@@ -22,7 +22,7 @@ func taskDomainFromModel(taskModel TaskModel) core_domain.Task {
 		taskModel.Description,
 		taskModel.Done,
 		taskModel.CreatedAt,
-		taskModel.UpdateAt,
+		taskModel.UpdatedAt,
 	)
 }
 

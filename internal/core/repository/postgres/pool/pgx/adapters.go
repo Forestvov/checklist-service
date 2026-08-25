@@ -1,4 +1,4 @@
-package core_px_pool
+package core_pgx_pool
 
 import (
 	"errors"
