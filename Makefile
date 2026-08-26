@@ -5,6 +5,7 @@ PROJECT_ROOT := $(CURDIR)
 export PROJECT_ROOT
 
 GO ?= go
+GO_TEST_PACKAGES = $(GO) list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./...
 
 .PHONY: db-up db-down db-cleanup port-up port-down migrate-create \
 	migrate-action migrate-up migrate-down logs-cleanup swagger-gen \
@@ -97,10 +98,20 @@ build:
 	@$(GO) build -o "$(PROJECT_ROOT)/out/bin/checklist-service" ./cmd/app
 
 test:
-	@$(GO) test ./...
+	@packages="$$($(GO_TEST_PACKAGES))" || exit 1; \
+		if [ -z "$$packages" ]; then \
+			echo "Пакеты с тестами не найдены"; \
+			exit 1; \
+		fi; \
+		$(GO) test $$packages
 
 test-race:
-	@$(GO) test -race ./...
+	@packages="$$($(GO_TEST_PACKAGES))" || exit 1; \
+		if [ -z "$$packages" ]; then \
+			echo "Пакеты с тестами не найдены"; \
+			exit 1; \
+		fi; \
+		$(GO) test -race $$packages
 
 vet:
 	@$(GO) vet ./...

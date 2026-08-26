@@ -1,12 +1,214 @@
 package tasks_transport_http
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_errors "github.com/Forestvov/checklist-service/internal/core/errors"
+	core_http_request "github.com/Forestvov/checklist-service/internal/core/transport/http/request"
 )
+
+func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
+	now := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
+
+	var serviceArgument core_domain.Task
+	service := tasksServiceStub{
+		createTaskFunc: func(
+			ctx context.Context,
+			task core_domain.Task,
+		) (core_domain.Task, error) {
+			serviceArgument = task
+
+			return core_domain.NewTask(
+				defaultTaskID,
+				task.Title,
+				task.Description,
+				false,
+				now,
+				now,
+			), nil
+		},
+	}
+
+	handler := NewTasksHTTPHandler(service)
+
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/tasks",
+		strings.NewReader(`{
+			"title": "Buy groceries",
+			"description": "Milk and bread"
+		}`),
+	)
+	request = requestWithTestLogger(request)
+
+	recorder := httptest.NewRecorder()
+
+	handler.CreateTask(recorder, request)
+
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf(
+			"expected status %d, got %d",
+			http.StatusCreated,
+			recorder.Code,
+		)
+	}
+
+	if serviceArgument.Title != "Buy groceries" {
+		t.Errorf(
+			"expected service title %q, got %q",
+			"Buy groceries",
+			serviceArgument.Title,
+		)
+	}
+	if serviceArgument.Description != "Milk and bread" {
+		t.Errorf(
+			"expected service description %q, got %q",
+			"Milk and bread",
+			serviceArgument.Description,
+		)
+	}
+	if serviceArgument.ID != core_domain.UninitializedID {
+		t.Errorf(
+			"expected uninitialized service task ID %d, got %d",
+			core_domain.UninitializedID,
+			serviceArgument.ID,
+		)
+	}
+	if serviceArgument.Done {
+		t.Error("expected uncompleted service task")
+	}
+
+	var response CreateTaskResponse
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	if response.ID != defaultTaskID {
+		t.Errorf("expected task ID %d, got %d", defaultTaskID, response.ID)
+	}
+
+	if response.Title != "Buy groceries" {
+		t.Errorf(
+			"expected response title %q, got %q",
+			"Buy groceries",
+			response.Title,
+		)
+	}
+}
+
+func TestTasksHTTPHandlerCreateTaskInvalidRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "empty body", body: ""},
+		{name: "malformed JSON", body: `{"title":`},
+		{name: "unknown field", body: `{"title":"Task","priority":1}`},
+		{name: "multiple JSON values", body: `{"title":"Task"} {"title":"Other"}`},
+		{name: "title too short after trimming", body: `{"title":"  a  "}`},
+		{
+			name: "body too large",
+			body: strings.Repeat("a", int(core_http_request.MaxRequestBodySize)+1),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serviceCalled := false
+			service := tasksServiceStub{
+				createTaskFunc: func(
+					_ context.Context,
+					_ core_domain.Task,
+				) (core_domain.Task, error) {
+					serviceCalled = true
+					return core_domain.Task{}, nil
+				},
+			}
+
+			handler := NewTasksHTTPHandler(service)
+			request := httptest.NewRequest(
+				http.MethodPost,
+				"/api/v1/tasks",
+				strings.NewReader(tt.body),
+			)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			handler.CreateTask(recorder, request)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf(
+					"expected status %d, got %d",
+					http.StatusBadRequest,
+					recorder.Code,
+				)
+			}
+			if serviceCalled {
+				t.Fatal("service must not be called for an invalid request")
+			}
+
+			response := decodeErrorResponse(t, recorder)
+			if response.Error != core_errors.ErrInvalidArgument.Error() {
+				t.Errorf(
+					"expected error %q, got %q",
+					core_errors.ErrInvalidArgument.Error(),
+					response.Error,
+				)
+			}
+		})
+	}
+}
+
+func TestTasksHTTPHandlerCreateTaskServiceError(t *testing.T) {
+	service := tasksServiceStub{
+		createTaskFunc: func(
+			_ context.Context,
+			_ core_domain.Task,
+		) (core_domain.Task, error) {
+			return core_domain.Task{}, errors.New(internalServiceErrorMessage)
+		},
+	}
+
+	handler := NewTasksHTTPHandler(service)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/tasks",
+		strings.NewReader(`{"title":"Buy groceries"}`),
+	)
+
+	request = requestWithTestLogger(request)
+	recorder := httptest.NewRecorder()
+
+	handler.CreateTask(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf(
+			"expected status %d, got %d",
+			http.StatusInternalServerError,
+			recorder.Code,
+		)
+	}
+	if strings.Contains(recorder.Body.String(), internalServiceErrorMessage) {
+		t.Error("internal service error must not be exposed in the response")
+	}
+
+	response := decodeErrorResponse(t, recorder)
+	if response.Error != http.StatusText(http.StatusInternalServerError) {
+		t.Errorf(
+			"expected error %q, got %q",
+			http.StatusText(http.StatusInternalServerError),
+			response.Error,
+		)
+	}
+}
 
 func TestCreateTaskRequestValidate(t *testing.T) {
 	tooLongDescription := strings.Repeat("я", 5001)

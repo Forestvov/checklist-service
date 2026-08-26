@@ -1,0 +1,379 @@
+package tasks_transport_http
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
+	core_errors "github.com/Forestvov/checklist-service/internal/core/errors"
+	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
+)
+
+func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
+	now := time.Date(
+		2026,
+		time.December,
+		25,
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+
+	expectedTasks := []core_domain.Task{
+		core_domain.NewTask(
+			42,
+			"Buy groceries",
+			"Milk and bread",
+			false,
+			now,
+			now,
+		),
+		core_domain.NewTask(
+			41,
+			"Write tests",
+			"Test GetTasks handler",
+			true,
+			now,
+			now,
+		),
+	}
+
+	const totalTasks int64 = 5
+
+	var serviceParams core_pagination.Params
+
+	service := tasksServiceStub{
+		getTasksFunc: func(
+			_ context.Context,
+			paginationParams core_pagination.Params,
+		) (core_pagination.Result[core_domain.Task], error) {
+			serviceParams = paginationParams
+
+			return core_pagination.NewResult(
+				expectedTasks,
+				totalTasks,
+				paginationParams,
+			), nil
+		},
+	}
+
+	handler := NewTasksHTTPHandler(service)
+
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/tasks?page=2&per_page=2",
+		nil,
+	)
+	request = requestWithTestLogger(request)
+
+	recorder := httptest.NewRecorder()
+
+	handler.GetTasks(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf(
+			"expected status %d, got %d",
+			http.StatusOK,
+			recorder.Code,
+		)
+	}
+
+	if serviceParams.Page != 2 {
+		t.Errorf(
+			"expected service page %d, got %d",
+			2,
+			serviceParams.Page,
+		)
+	}
+
+	if serviceParams.PerPage != 2 {
+		t.Errorf(
+			"expected service per_page %d, got %d",
+			2,
+			serviceParams.PerPage,
+		)
+	}
+
+	var response GetTasksResponse
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	if len(response.Data) != len(expectedTasks) {
+		t.Fatalf(
+			"expected %d tasks, got %d",
+			len(expectedTasks),
+			len(response.Data),
+		)
+	}
+
+	if response.Data[0].ID != expectedTasks[0].ID {
+		t.Errorf(
+			"expected first task ID %d, got %d",
+			expectedTasks[0].ID,
+			response.Data[0].ID,
+		)
+	}
+
+	if response.Data[1].ID != expectedTasks[1].ID {
+		t.Errorf(
+			"expected second task ID %d, got %d",
+			expectedTasks[1].ID,
+			response.Data[1].ID,
+		)
+	}
+
+	if response.Meta.Page != 2 {
+		t.Errorf(
+			"expected meta page %d, got %d",
+			2,
+			response.Meta.Page,
+		)
+	}
+
+	if response.Meta.PerPage != 2 {
+		t.Errorf(
+			"expected meta per_page %d, got %d",
+			2,
+			response.Meta.PerPage,
+		)
+	}
+
+	if response.Meta.Total != totalTasks {
+		t.Errorf(
+			"expected total %d, got %d",
+			totalTasks,
+			response.Meta.Total,
+		)
+	}
+
+	if response.Meta.TotalPages != 3 {
+		t.Errorf(
+			"expected total pages %d, got %d",
+			3,
+			response.Meta.TotalPages,
+		)
+	}
+}
+
+func TestTasksHTTPHandlerGetTasksDefaultPagination(t *testing.T) {
+	var serviceParams core_pagination.Params
+
+	service := tasksServiceStub{
+		getTasksFunc: func(
+			_ context.Context,
+			params core_pagination.Params,
+		) (core_pagination.Result[core_domain.Task], error) {
+			serviceParams = params
+
+			return core_pagination.NewResult[core_domain.Task](
+				nil,
+				0,
+				params,
+			), nil
+		},
+	}
+
+	handler := NewTasksHTTPHandler(service)
+
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/tasks",
+		nil,
+	)
+	request = requestWithTestLogger(request)
+
+	recorder := httptest.NewRecorder()
+
+	handler.GetTasks(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf(
+			"expected status %d, got %d",
+			http.StatusOK,
+			recorder.Code,
+		)
+	}
+
+	if serviceParams.Page != core_pagination.DefaultPage {
+		t.Fatalf(
+			"expected page %d, got %d",
+			core_pagination.DefaultPage,
+			serviceParams.Page,
+		)
+	}
+
+	if serviceParams.PerPage != core_pagination.DefaultPerPage {
+		t.Fatalf(
+			"expected per_page %d, got %d",
+			core_pagination.DefaultPerPage,
+			serviceParams.PerPage,
+		)
+	}
+
+	var response GetTasksResponse
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	if response.Data == nil {
+		t.Error("expected data to be an empty array, got null")
+	}
+
+	if len(response.Data) != 0 {
+		t.Errorf(
+			"expected 0 tasks, got %d",
+			len(response.Data),
+		)
+	}
+
+	if response.Meta.Page != core_pagination.DefaultPage {
+		t.Errorf(
+			"expected meta page %d, got %d",
+			core_pagination.DefaultPage,
+			response.Meta.Page,
+		)
+	}
+
+	if response.Meta.PerPage != core_pagination.DefaultPerPage {
+		t.Errorf(
+			"expected meta per_page %d, got %d",
+			core_pagination.DefaultPerPage,
+			response.Meta.PerPage,
+		)
+	}
+
+	if response.Meta.Total != 0 {
+		t.Fatalf(
+			"expected total %d, got %d",
+			0,
+			response.Meta.Total,
+		)
+	}
+
+	if response.Meta.TotalPages != 0 {
+		t.Errorf(
+			"expected total pages %d, got %d",
+			0,
+			response.Meta.TotalPages,
+		)
+	}
+}
+
+func TestTasksHTTPHandlerGetTasksInvalidPagination(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+	}{
+		{name: "zero page", query: "?page=0"},
+		{name: "negative page", query: "?page=-1"},
+		{name: "invalid page", query: "?page=task"},
+		{name: "zero per page", query: "?per_page=0"},
+		{name: "negative per page", query: "?per_page=-1"},
+		{name: "per page over limit", query: "?per_page=101"},
+		{name: "invalid per page", query: "?per_page=task"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serviceCalled := false
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					_ core_pagination.Params,
+				) (core_pagination.Result[core_domain.Task], error) {
+					serviceCalled = true
+					return core_pagination.Result[core_domain.Task]{}, nil
+				},
+			}
+
+			handler := NewTasksHTTPHandler(service)
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/api/v1/tasks"+tt.query,
+				nil,
+			)
+
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			handler.GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf(
+					"expected status %d, got %d",
+					http.StatusBadRequest,
+					recorder.Code,
+				)
+			}
+			if serviceCalled {
+				t.Fatal("service must not be called for invalid pagination parameters")
+			}
+
+			response := decodeErrorResponse(t, recorder)
+			if response.Error != core_errors.ErrInvalidArgument.Error() {
+				t.Errorf(
+					"expected error %q, got %q",
+					core_errors.ErrInvalidArgument.Error(),
+					response.Error,
+				)
+			}
+		})
+	}
+}
+
+func TestTasksHTTPHandlerGetTasksServiceError(t *testing.T) {
+	service := tasksServiceStub{
+		getTasksFunc: func(
+			_ context.Context,
+			params core_pagination.Params,
+		) (core_pagination.Result[core_domain.Task], error) {
+			return core_pagination.NewResult[core_domain.Task](
+				nil,
+				0,
+				params,
+			), errors.New(internalServiceErrorMessage)
+		},
+	}
+
+	handler := NewTasksHTTPHandler(service)
+
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/tasks",
+		nil,
+	)
+	request = requestWithTestLogger(request)
+
+	recorder := httptest.NewRecorder()
+
+	handler.GetTasks(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf(
+			"expected status %d, got %d",
+			http.StatusInternalServerError,
+			recorder.Code,
+		)
+	}
+	if strings.Contains(recorder.Body.String(), internalServiceErrorMessage) {
+		t.Error("internal service error must not be exposed in the response")
+	}
+
+	response := decodeErrorResponse(t, recorder)
+	if response.Error != http.StatusText(http.StatusInternalServerError) {
+		t.Errorf(
+			"expected error %q, got %q",
+			http.StatusText(http.StatusInternalServerError),
+			response.Error,
+		)
+	}
+}
