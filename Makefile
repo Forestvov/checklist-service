@@ -98,20 +98,14 @@ build:
 	@$(GO) build -o "$(PROJECT_ROOT)/out/bin/checklist-service" ./cmd/app
 
 test:
-	@packages="$$($(GO_TEST_PACKAGES))" || exit 1; \
-		if [ -z "$$packages" ]; then \
-			echo "Пакеты с тестами не найдены"; \
-			exit 1; \
-		fi; \
-		$(GO) test $$packages
+	@$(GO) test ./...
 
 test-race:
-	@packages="$$($(GO_TEST_PACKAGES))" || exit 1; \
-		if [ -z "$$packages" ]; then \
-			echo "Пакеты с тестами не найдены"; \
-			exit 1; \
-		fi; \
-		$(GO) test -race $$packages
+	@$(GO) test -race ./...
+
+test-cover:
+	@$(GO) test ./... -coverprofile=out/coverage.out
+	@$(GO) tool cover -func=out/coverage.out
 
 vet:
 	@$(GO) vet ./...
