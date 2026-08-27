@@ -1,5 +1,7 @@
 # Checklist Service
 
+[![CI](https://github.com/Forestvov/checklist-service/actions/workflows/ci.yml/badge.svg)](https://github.com/Forestvov/checklist-service/actions/workflows/ci.yml)
+
 REST API для управления задачами, написанный на Go. Сервис позволяет создавать,
 просматривать, завершать и удалять задачи. Данные хранятся в PostgreSQL, схема БД
 управляется миграциями, а описание API доступно через Swagger UI.
@@ -152,6 +154,8 @@ make test-race     # тесты с race detector
 make test-cover    # отчёт о покрытии
 make vet           # статические проверки Go
 make format        # форматирование
+make format-check  # проверка форматирования без изменения файлов
+make ci            # все локальные CI-проверки
 make build         # бинарный файл в out/bin
 make swagger-gen   # обновление Swagger-документации
 ```
@@ -195,5 +199,5 @@ Unit-тестами покрыты domain, service и HTTP transport. Следу
 - фильтрация, сортировка, дедлайны и приоритеты;
 - интеграционные тесты repository;
 - авторизация и принадлежность задач пользователям;
-- CI и публикация Docker-образа;
+- публикация Docker-образа;
 - метрики и distributed tracing.

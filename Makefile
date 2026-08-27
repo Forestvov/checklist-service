@@ -9,7 +9,7 @@ GO_TEST_PACKAGES = $(GO) list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportP
 
 .PHONY: db-up db-down db-cleanup port-up port-down migrate-create \
 	migrate-action migrate-up migrate-down logs-cleanup swagger-gen \
-	app-run build test test-race vet format ps
+	app-run build test test-race test-cover vet format format-check ci ps
 
 db-up:
 	@docker compose up -d --wait checklist-postgres
@@ -112,6 +112,16 @@ vet:
 
 format:
 	@gofmt -w cmd internal
+
+format-check:
+	@unformatted="$$(gofmt -l cmd internal)"; \
+		if [ -n "$$unformatted" ]; then \
+			echo "Найдены неотформатированные Go-файлы:"; \
+			echo "$$unformatted"; \
+			exit 1; \
+		fi
+
+ci: format-check test test-race vet build
 
 ps:
 	@docker compose ps
