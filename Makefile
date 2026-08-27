@@ -9,7 +9,8 @@ GO_TEST_PACKAGES = $(GO) list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportP
 
 .PHONY: db-up db-down db-cleanup port-up port-down migrate-create \
 	migrate-action migrate-up migrate-down logs-cleanup swagger-gen \
-	app-run build test test-race test-cover vet format format-check ci ps
+	app-run build test test-race test-integration test-all test-cover vet \
+	format format-check ci ps
 
 db-up:
 	@docker compose up -d --wait checklist-postgres
@@ -102,6 +103,12 @@ test:
 
 test-race:
 	@$(GO) test -race ./...
+
+test-integration:
+	@$(GO) test -tags=integration -count=1 -timeout=5m \
+		./internal/features/tasks/repository/postgres
+
+test-all: test test-integration
 
 test-cover:
 	@$(GO) test ./... -coverprofile=out/coverage.out

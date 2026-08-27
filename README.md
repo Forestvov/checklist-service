@@ -45,6 +45,7 @@ flowchart LR
 ```text
 cmd/app                              точка входа, Dockerfile и сборка зависимостей
 internal/core                        общая инфраструктура и доменные типы
+internal/testutil                    инфраструктура интеграционных тестов
 internal/features/tasks/transport    HTTP handlers и DTO
 internal/features/tasks/service      бизнес-логика
 internal/features/tasks/repository   работа с PostgreSQL
@@ -151,6 +152,8 @@ make app-run
 ```bash
 make test          # unit-тесты
 make test-race     # тесты с race detector
+make test-integration # интеграционные тесты с временным PostgreSQL
+make test-all      # unit- и интеграционные тесты
 make test-cover    # отчёт о покрытии
 make vet           # статические проверки Go
 make format        # форматирование
@@ -190,14 +193,24 @@ go test -race ./...
 go vet ./...
 ```
 
-Unit-тестами покрыты domain, service и HTTP transport. Следующий запланированный
-этап — интеграционные тесты PostgreSQL repository с запуском временной базы.
+Unit-тестами покрыты domain, service и HTTP transport. Для первого запуска
+интеграционных тестов требуется Docker; PostgreSQL создаётся и удаляется
+автоматически:
+
+```bash
+make test-integration
+```
+
+Интеграционный набор использует PostgreSQL 18 и применяет настоящие SQL-файлы из
+каталога `migrations`. Обычный `make test` не запускает контейнеры. В GitHub
+Actions интеграционные тесты выполняются отдельным PostgreSQL job параллельно с
+Go-проверками и сборкой Docker-образа.
 
 ## Планы развития
 
 - полноценное редактирование и повторное открытие задач;
 - фильтрация, сортировка, дедлайны и приоритеты;
-- интеграционные тесты repository;
+- CRUD-сценарии интеграционных тестов repository;
 - авторизация и принадлежность задач пользователям;
 - публикация Docker-образа;
 - метрики и distributed tracing.
