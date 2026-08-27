@@ -20,8 +20,6 @@ const (
 )
 
 type tasksServiceStub struct {
-	TasksService
-
 	createTaskFunc func(
 		ctx context.Context,
 		task core_domain.Task,
