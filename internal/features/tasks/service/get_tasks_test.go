@@ -8,6 +8,7 @@ import (
 	"time"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
+	core_errors "github.com/Forestvov/checklist-service/internal/core/errors"
 	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
 )
 
@@ -44,7 +45,11 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 		paginationParams,
 	)
 	done := true
-	filter := core_domain.NewTaskFilter(&done)
+	filter := core_domain.NewTaskFilter(
+		&done,
+		core_domain.TaskSortTitle,
+		core_domain.SortOrderAsc,
+	)
 
 	var (
 		repositoryParams core_pagination.Params
@@ -85,6 +90,10 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 	if repositoryFilter.Done == nil || !*repositoryFilter.Done {
 		t.Errorf("expected done=true filter, got %+v", repositoryFilter)
 	}
+	if repositoryFilter.Sort != core_domain.TaskSortTitle ||
+		repositoryFilter.Order != core_domain.SortOrderAsc {
+		t.Errorf("expected title asc sorting, got %+v", repositoryFilter)
+	}
 
 	if !slices.Equal(actualResult.Items, expectedResult.Items) {
 		t.Errorf(
@@ -111,6 +120,60 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 	}
 }
 
+func TestTaskServiceGetTasksInvalidFilter(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter core_domain.TaskFilter
+	}{
+		{
+			name: "unsupported sort",
+			filter: core_domain.TaskFilter{
+				Sort:  core_domain.TaskSort("priority"),
+				Order: core_domain.SortOrderAsc,
+			},
+		},
+		{
+			name: "unsupported order",
+			filter: core_domain.TaskFilter{
+				Sort:  core_domain.TaskSortCreatedAt,
+				Order: core_domain.SortOrder("sideways"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repositoryCalled := false
+			repository := taskRepositoryStub{
+				getTasksFunc: func(
+					_ context.Context,
+					_ core_pagination.Params,
+					_ core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					repositoryCalled = true
+					return core_pagination.Result[core_domain.Task]{}, nil
+				},
+			}
+
+			actual, err := NewTaskService(repository).GetTasks(
+				context.Background(),
+				core_pagination.Params{Page: 1, PerPage: 20},
+				tt.filter,
+			)
+			if !errors.Is(err, core_errors.ErrInvalidArgument) {
+				t.Fatalf("expected ErrInvalidArgument, got %v", err)
+			}
+			if repositoryCalled {
+				t.Fatal("repository must not be called for an invalid filter")
+			}
+			if actual.Items != nil || actual.Total != 0 ||
+				actual.Params != (core_pagination.Params{}) {
+				t.Errorf("expected empty result, got %+v", actual)
+			}
+		})
+	}
+}
+
 func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 	paginationParams := core_pagination.Params{
 		Page:    2,
@@ -119,7 +182,11 @@ func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 
 	repositoryError := errors.New("database unavailable")
 	done := false
-	filter := core_domain.NewTaskFilter(&done)
+	filter := core_domain.NewTaskFilter(
+		&done,
+		"",
+		"",
+	)
 	repositoryResult := core_pagination.NewResult(
 		[]core_domain.Task{
 			{ID: defaultTaskID, Title: "Unexpected task"},

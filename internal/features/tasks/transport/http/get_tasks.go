@@ -18,15 +18,18 @@ type GetTasksResponse struct {
 // GetTasks returns a paginated list of tasks.
 //
 // @Summary Get tasks
-// @Description Returns tasks ordered from newest to oldest using page-based pagination.
+// @Description Returns a filtered and sorted task list using page-based pagination.
 // @Description If page or per_page is omitted, the defaults are page=1 and per_page=20.
 // @Description If done is omitted, tasks of both statuses are returned.
+// @Description By default, tasks are ordered by created_at in descending order.
 // @Description A page beyond the available range returns an empty data array with the requested pagination metadata.
 // @Tags tasks
 // @Produce json
 // @Param page query int false "Page number" default(1) minimum(1)
 // @Param per_page query int false "Number of tasks per page" default(20) minimum(1) maximum(100)
 // @Param done query bool false "Filter by completion status"
+// @Param sort query string false "Sort field" Enums(created_at,updated_at,title) default(created_at)
+// @Param order query string false "Sort direction" Enums(asc,desc) default(desc)
 // @Success 200 {object} GetTasksResponse "Paginated task list"
 // @Failure 400 {object} core_http_response.ErrorResponse "Invalid pagination or filter parameters"
 // @Failure 500 {object} core_http_response.ErrorResponse "Unexpected server error"
@@ -45,7 +48,7 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	done, err := getTasksDoneQueryParams(r)
+	done, sortBy, orderBy, err := getTasksFilterQueryParams(r)
 	if err != nil {
 		responseHandler.ErrorResponse(
 			err,
@@ -56,6 +59,8 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 
 	filter := core_domain.NewTaskFilter(
 		done,
+		sortBy,
+		orderBy,
 	)
 
 	tasksResult, err := h.tasksService.GetTasks(
@@ -78,13 +83,20 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 	responseHandler.JSONResponse(response, http.StatusOK)
 }
 
-func getTasksDoneQueryParams(r *http.Request) (*bool, error) {
-	const doneParam = "done"
+func getTasksFilterQueryParams(r *http.Request) (*bool, core_domain.TaskSort, core_domain.SortOrder, error) {
+	const (
+		doneParam    = "done"
+		sortByParam  = "sort"
+		orderByParam = "order"
+	)
 
 	done, err := core_http_request.GetBoolQueryParam(r, doneParam)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get done param: %w", err)
+		return nil, "", "", fmt.Errorf("failed to get done param: %w", err)
 	}
 
-	return done, nil
+	sortBy := core_domain.TaskSort(r.URL.Query().Get(sortByParam))
+	order := core_domain.SortOrder(r.URL.Query().Get(orderByParam))
+
+	return done, sortBy, order, nil
 }

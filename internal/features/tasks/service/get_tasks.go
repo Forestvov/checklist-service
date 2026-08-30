@@ -13,6 +13,13 @@ func (s *TaskService) GetTasks(
 	paginationParams core_pagination.Params,
 	filter core_domain.TaskFilter,
 ) (core_pagination.Result[core_domain.Task], error) {
+	if err := filter.Validate(); err != nil {
+		return core_pagination.Result[core_domain.Task]{}, fmt.Errorf(
+			"validate task filter: %w",
+			err,
+		)
+	}
+
 	result, err := s.taskRepository.GetTasks(
 		ctx,
 		paginationParams,

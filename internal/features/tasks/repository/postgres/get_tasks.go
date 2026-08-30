@@ -38,13 +38,33 @@ func (r *TasksRepository) GetTasks(
 		return emptyResult, fmt.Errorf("count tasks: %w", err)
 	}
 
-	selectSQL := `
+	var orderColumn string
+	switch filter.Sort {
+	case core_domain.TaskSortCreatedAt:
+		orderColumn = "created_at"
+	case core_domain.TaskSortUpdatedAt:
+		orderColumn = "updated_at"
+	case core_domain.TaskSortTitle:
+		orderColumn = "title"
+	}
+
+	var orderDirection string
+	switch filter.Order {
+	case core_domain.SortOrderAsc:
+		orderDirection = "ASC"
+	case core_domain.SortOrderDesc:
+		orderDirection = "DESC"
+	}
+
+	orderBy := orderColumn + " " + orderDirection
+
+	selectSQL := fmt.Sprintf(`
 		SELECT id, title, description, done, created_at, updated_at
 		FROM checklist.tasks
 		WHERE ($1::boolean IS NULL OR done = $1)
-		ORDER BY id DESC
+		ORDER BY %s, id %s
 		LIMIT $2 OFFSET $3;
-	`
+	`, orderBy, orderDirection)
 
 	rows, err := r.pool.Query(
 		ctx,

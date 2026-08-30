@@ -131,9 +131,10 @@ paths:
   /api/v1/tasks:
     get:
       description: |-
-        Returns tasks ordered from newest to oldest using page-based pagination.
+        Returns a filtered and sorted task list using page-based pagination.
         If page or per_page is omitted, the defaults are page=1 and per_page=20.
         If done is omitted, tasks of both statuses are returned.
+        By default, tasks are ordered by created_at in descending order.
         A page beyond the available range returns an empty data array with the requested pagination metadata.
       parameters:
       - default: 1
@@ -153,6 +154,23 @@ paths:
         in: query
         name: done
         type: boolean
+      - default: created_at
+        description: Sort field
+        enum:
+        - created_at
+        - updated_at
+        - title
+        in: query
+        name: sort
+        type: string
+      - default: desc
+        description: Sort direction
+        enum:
+        - asc
+        - desc
+        in: query
+        name: order
+        type: string
       produces:
       - application/json
       responses:

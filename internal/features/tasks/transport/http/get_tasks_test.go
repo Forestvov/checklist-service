@@ -109,6 +109,10 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 	if serviceFilter.Done != nil {
 		t.Errorf("expected empty done filter, got %+v", serviceFilter)
 	}
+	if serviceFilter.Sort != core_domain.DefaultTaskSort ||
+		serviceFilter.Order != core_domain.DefaultSortOrder {
+		t.Errorf("expected default sorting, got %+v", serviceFilter)
+	}
 
 	var response GetTasksResponse
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
@@ -318,6 +322,125 @@ func TestTasksHTTPHandlerGetTasksDoneFilter(t *testing.T) {
 			}
 			if *serviceFilter.Done != tt.want {
 				t.Errorf("expected done=%t, got %t", tt.want, *serviceFilter.Done)
+			}
+		})
+	}
+}
+
+func TestTasksHTTPHandlerGetTasksSorting(t *testing.T) {
+	tests := []struct {
+		name      string
+		query     string
+		wantSort  core_domain.TaskSort
+		wantOrder core_domain.SortOrder
+	}{
+		{
+			name:      "default sorting",
+			wantSort:  core_domain.DefaultTaskSort,
+			wantOrder: core_domain.DefaultSortOrder,
+		},
+		{
+			name:      "title ascending",
+			query:     "?sort=title&order=asc",
+			wantSort:  core_domain.TaskSortTitle,
+			wantOrder: core_domain.SortOrderAsc,
+		},
+		{
+			name:      "updated at descending",
+			query:     "?sort=updated_at&order=desc",
+			wantSort:  core_domain.TaskSortUpdatedAt,
+			wantOrder: core_domain.SortOrderDesc,
+		},
+		{
+			name:      "default order",
+			query:     "?sort=title",
+			wantSort:  core_domain.TaskSortTitle,
+			wantOrder: core_domain.DefaultSortOrder,
+		},
+		{
+			name:      "default sort field",
+			query:     "?order=asc",
+			wantSort:  core_domain.DefaultTaskSort,
+			wantOrder: core_domain.SortOrderAsc,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var serviceFilter core_domain.TaskFilter
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					params core_pagination.Params,
+					filter core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					serviceFilter = filter
+					return core_pagination.NewResult[core_domain.Task](nil, 0, params), nil
+				},
+			}
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/api/v1/tasks"+tt.query,
+				nil,
+			)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			NewTasksHTTPHandler(service).GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+			}
+			if serviceFilter.Sort != tt.wantSort {
+				t.Errorf("expected sort %q, got %q", tt.wantSort, serviceFilter.Sort)
+			}
+			if serviceFilter.Order != tt.wantOrder {
+				t.Errorf("expected order %q, got %q", tt.wantOrder, serviceFilter.Order)
+			}
+		})
+	}
+}
+
+func TestTasksHTTPHandlerGetTasksInvalidSorting(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+	}{
+		{name: "unsupported sort", query: "?sort=priority"},
+		{name: "unsupported order", query: "?order=sideways"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					_ core_pagination.Params,
+					filter core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					return core_pagination.Result[core_domain.Task]{}, filter.Validate()
+				},
+			}
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/api/v1/tasks"+tt.query,
+				nil,
+			)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			NewTasksHTTPHandler(service).GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("expected status %d, got %d", http.StatusBadRequest, recorder.Code)
+			}
+			response := decodeErrorResponse(t, recorder)
+			if response.Error != core_errors.ErrInvalidArgument.Error() {
+				t.Errorf(
+					"expected error %q, got %q",
+					core_errors.ErrInvalidArgument,
+					response.Error,
+				)
 			}
 		})
 	}

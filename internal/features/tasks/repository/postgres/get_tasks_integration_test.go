@@ -3,12 +3,125 @@
 package tasks_postgres_repository
 
 import (
+	"slices"
 	"testing"
 	"time"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
 )
+
+func TestTasksRepositoryGetTasksSorting(t *testing.T) {
+	repository := newTestRepository(t)
+	ctx := newTestContext(t)
+	baseTime := time.Date(2026, time.August, 30, 12, 0, 0, 0, time.UTC)
+
+	inputs := []core_domain.Task{
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Charlie task",
+			"",
+			false,
+			baseTime.Add(time.Minute),
+			baseTime.Add(3*time.Minute),
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Alpha task",
+			"",
+			false,
+			baseTime.Add(2*time.Minute),
+			baseTime.Add(time.Minute),
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Bravo task",
+			"",
+			false,
+			baseTime.Add(3*time.Minute),
+			baseTime.Add(2*time.Minute),
+		),
+	}
+
+	createdTasks := make([]core_domain.Task, 0, len(inputs))
+	for _, input := range inputs {
+		created, err := repository.CreateTask(ctx, input)
+		if err != nil {
+			t.Fatalf("prepare task %q: %v", input.Title, err)
+		}
+		createdTasks = append(createdTasks, created)
+	}
+
+	params, err := core_pagination.NewParams(nil, nil)
+	if err != nil {
+		t.Fatalf("create default pagination params: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		sort        core_domain.TaskSort
+		order       core_domain.SortOrder
+		expectedIDs []int64
+	}{
+		{
+			name:        "created at ascending",
+			sort:        core_domain.TaskSortCreatedAt,
+			order:       core_domain.SortOrderAsc,
+			expectedIDs: []int64{createdTasks[0].ID, createdTasks[1].ID, createdTasks[2].ID},
+		},
+		{
+			name:        "created at descending",
+			sort:        core_domain.TaskSortCreatedAt,
+			order:       core_domain.SortOrderDesc,
+			expectedIDs: []int64{createdTasks[2].ID, createdTasks[1].ID, createdTasks[0].ID},
+		},
+		{
+			name:        "updated at ascending",
+			sort:        core_domain.TaskSortUpdatedAt,
+			order:       core_domain.SortOrderAsc,
+			expectedIDs: []int64{createdTasks[1].ID, createdTasks[2].ID, createdTasks[0].ID},
+		},
+		{
+			name:        "updated at descending",
+			sort:        core_domain.TaskSortUpdatedAt,
+			order:       core_domain.SortOrderDesc,
+			expectedIDs: []int64{createdTasks[0].ID, createdTasks[2].ID, createdTasks[1].ID},
+		},
+		{
+			name:        "title ascending",
+			sort:        core_domain.TaskSortTitle,
+			order:       core_domain.SortOrderAsc,
+			expectedIDs: []int64{createdTasks[1].ID, createdTasks[2].ID, createdTasks[0].ID},
+		},
+		{
+			name:        "title descending",
+			sort:        core_domain.TaskSortTitle,
+			order:       core_domain.SortOrderDesc,
+			expectedIDs: []int64{createdTasks[0].ID, createdTasks[2].ID, createdTasks[1].ID},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := repository.GetTasks(
+				ctx,
+				params,
+				core_domain.NewTaskFilter(nil, tt.sort, tt.order),
+			)
+			if err != nil {
+				t.Fatalf("get sorted tasks: %v", err)
+			}
+
+			actualIDs := make([]int64, 0, len(result.Items))
+			for _, task := range result.Items {
+				actualIDs = append(actualIDs, task.ID)
+			}
+			if !slices.Equal(actualIDs, tt.expectedIDs) {
+				t.Errorf("unexpected task order: got %v, want %v", actualIDs, tt.expectedIDs)
+			}
+		})
+	}
+}
 
 func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 	repository := newTestRepository(t)
@@ -71,7 +184,7 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 			result, err := repository.GetTasks(
 				ctx,
 				params,
-				core_domain.NewTaskFilter(&tt.done),
+				core_domain.NewTaskFilter(&tt.done, "", ""),
 			)
 			if err != nil {
 				t.Fatalf("get filtered tasks: %v", err)
@@ -103,7 +216,7 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		filteredParams,
-		core_domain.NewTaskFilter(&done),
+		core_domain.NewTaskFilter(&done, "", ""),
 	)
 	if err != nil {
 		t.Fatalf("get filtered task page: %v", err)
@@ -128,7 +241,11 @@ func TestTasksRepositoryGetTasksEmpty(t *testing.T) {
 		t.Fatalf("create default pagination params: %v", err)
 	}
 
-	result, err := repository.GetTasks(ctx, params, core_domain.TaskFilter{})
+	result, err := repository.GetTasks(
+		ctx,
+		params,
+		core_domain.NewTaskFilter(nil, "", ""),
+	)
 	if err != nil {
 		t.Fatalf("get tasks from migrated database: %v", err)
 	}
@@ -171,7 +288,11 @@ func TestTasksRepositoryGetTasksSuccess(t *testing.T) {
 		t.Fatalf("create default pagination params: %v", err)
 	}
 
-	result, err := repository.GetTasks(ctx, params, core_domain.TaskFilter{})
+	result, err := repository.GetTasks(
+		ctx,
+		params,
+		core_domain.NewTaskFilter(nil, "", ""),
+	)
 	if err != nil {
 		t.Fatalf("get tasks: %v", err)
 	}
@@ -263,7 +384,11 @@ func TestTasksRepositoryGetTasksPagination(t *testing.T) {
 		t.Fatalf("create pagination params: %v", err)
 	}
 
-	result, err := repository.GetTasks(ctx, params, core_domain.TaskFilter{})
+	result, err := repository.GetTasks(
+		ctx,
+		params,
+		core_domain.NewTaskFilter(nil, "", ""),
+	)
 	if err != nil {
 		t.Fatalf("get tasks: %v", err)
 	}

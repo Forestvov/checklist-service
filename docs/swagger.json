@@ -6,7 +6,7 @@
     "paths": {
         "/api/v1/tasks": {
             "get": {
-                "description": "Returns tasks ordered from newest to oldest using page-based pagination.\nIf page or per_page is omitted, the defaults are page=1 and per_page=20.\nIf done is omitted, tasks of both statuses are returned.\nA page beyond the available range returns an empty data array with the requested pagination metadata.",
+                "description": "Returns a filtered and sorted task list using page-based pagination.\nIf page or per_page is omitted, the defaults are page=1 and per_page=20.\nIf done is omitted, tasks of both statuses are returned.\nBy default, tasks are ordered by created_at in descending order.\nA page beyond the available range returns an empty data array with the requested pagination metadata.",
                 "produces": [
                     "application/json"
                 ],
@@ -36,6 +36,29 @@
                         "type": "boolean",
                         "description": "Filter by completion status",
                         "name": "done",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "created_at",
+                            "updated_at",
+                            "title"
+                        ],
+                        "type": "string",
+                        "default": "created_at",
+                        "description": "Sort field",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Sort direction",
+                        "name": "order",
                         "in": "query"
                     }
                 ],
