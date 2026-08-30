@@ -27,11 +27,6 @@ type TaskRepository interface {
 		taskID int64,
 	) (core_domain.Task, error)
 
-	CompleteTask(
-		ctx context.Context,
-		taskID int64,
-	) (core_domain.Task, error)
-
 	UpdateTask(
 		ctx context.Context,
 		taskID int64,

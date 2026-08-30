@@ -35,11 +35,6 @@ type tasksServiceStub struct {
 		taskID int64,
 	) (core_domain.Task, error)
 
-	completeTaskFunc func(
-		ctx context.Context,
-		taskID int64,
-	) (core_domain.Task, error)
-
 	updateTaskFunc func(
 		ctx context.Context,
 		taskID int64,
@@ -112,13 +107,6 @@ func (s tasksServiceStub) GetTask(
 	taskID int64,
 ) (core_domain.Task, error) {
 	return s.getTaskFunc(ctx, taskID)
-}
-
-func (s tasksServiceStub) CompleteTask(
-	ctx context.Context,
-	taskID int64,
-) (core_domain.Task, error) {
-	return s.completeTaskFunc(ctx, taskID)
 }
 
 func (s tasksServiceStub) UpdateTask(

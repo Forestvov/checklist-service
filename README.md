@@ -3,21 +3,22 @@
 [![CI](https://github.com/Forestvov/checklist-service/actions/workflows/ci.yml/badge.svg)](https://github.com/Forestvov/checklist-service/actions/workflows/ci.yml)
 
 REST API для управления задачами, написанный на Go. Сервис позволяет создавать,
-просматривать, завершать и удалять задачи. Данные хранятся в PostgreSQL, схема БД
-управляется миграциями, а описание API доступно через Swagger UI.
+просматривать, редактировать и удалять задачи. Данные хранятся в PostgreSQL,
+схема БД управляется миграциями, а описание API доступно через Swagger UI.
 
 ## Возможности
 
 - создание задачи с валидацией заголовка и описания;
 - получение задачи по идентификатору;
 - получение списка задач с пагинацией;
-- завершение задачи;
+- частичное редактирование и изменение статуса задачи;
 - удаление задачи;
 - Swagger/OpenAPI-документация;
 - health checks для приложения и PostgreSQL;
 - structured logging, request ID и обработка panic;
 - graceful shutdown;
-- unit-тесты transport, service и domain слоёв.
+- unit-тесты transport, service и domain слоёв;
+- интеграционные CRUD-тесты PostgreSQL repository.
 
 ## Стек
 
@@ -110,11 +111,17 @@ curl 'http://localhost:5050/api/v1/tasks?page=1&per_page=20'
 curl http://localhost:5050/api/v1/tasks/1
 ```
 
-Завершить задачу:
+Частично обновить задачу:
 
 ```bash
-curl -i -X PATCH http://localhost:5050/api/v1/tasks/1
+curl -i -X PATCH http://localhost:5050/api/v1/tasks/1 \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Buy groceries today","done":true}'
 ```
+
+В PATCH-запросе можно передать одно или несколько полей: `title`, `description`
+и `done`. Пропущенные поля останутся без изменений. Чтобы повторно открыть
+выполненную задачу, передайте `{"done":false}`.
 
 Удалить задачу:
 
@@ -129,7 +136,7 @@ curl -i -X DELETE http://localhost:5050/api/v1/tasks/1
 | `POST` | `/api/v1/tasks` | Создать задачу |
 | `GET` | `/api/v1/tasks` | Получить список с пагинацией |
 | `GET` | `/api/v1/tasks/{id}` | Получить задачу |
-| `PATCH` | `/api/v1/tasks/{id}` | Отметить задачу выполненной |
+| `PATCH` | `/api/v1/tasks/{id}` | Частично обновить задачу |
 | `DELETE` | `/api/v1/tasks/{id}` | Удалить задачу |
 
 Параметры пагинации:
@@ -208,9 +215,7 @@ Go-проверками и сборкой Docker-образа.
 
 ## Планы развития
 
-- полноценное редактирование и повторное открытие задач;
 - фильтрация, сортировка, дедлайны и приоритеты;
-- CRUD-сценарии интеграционных тестов repository;
 - авторизация и принадлежность задач пользователям;
 - публикация Docker-образа;
 - метрики и distributed tracing.
