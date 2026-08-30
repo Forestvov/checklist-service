@@ -9,6 +9,12 @@ import (
 	core_errors "github.com/Forestvov/checklist-service/internal/core/errors"
 )
 
+const (
+	minTaskTitleLength       = 3
+	maxTaskTitleLength       = 255
+	maxTaskDescriptionLength = 5000
+)
+
 type Task struct {
 	ID          int64
 	Title       string
@@ -57,26 +63,120 @@ func NewTaskUninitialized(
 	)
 }
 
+type UpdateTask struct {
+	Title       Nullable[string]
+	Description Nullable[string]
+	Done        Nullable[bool]
+}
+
+func NewUpdateTask(
+	title Nullable[string],
+	description Nullable[string],
+	done Nullable[bool],
+) UpdateTask {
+	return UpdateTask{
+		Title:       title,
+		Description: description,
+		Done:        done,
+	}
+}
+
+func (u UpdateTask) Validate() error {
+	if !u.Title.Set && !u.Description.Set && !u.Done.Set {
+		return fmt.Errorf("at least one task field must be provided: %w", core_errors.ErrInvalidArgument)
+	}
+
+	if u.Title.Set {
+		if u.Title.Value == nil {
+			return fmt.Errorf("title must not be null: %w", core_errors.ErrInvalidArgument)
+		}
+
+		if err := validateTaskTitle(*u.Title.Value); err != nil {
+			return err
+		}
+	}
+
+	if u.Description.Set {
+		if u.Description.Value == nil {
+			return fmt.Errorf("description must not be null: %w", core_errors.ErrInvalidArgument)
+		}
+
+		if err := validateTaskDescription(*u.Description.Value); err != nil {
+			return err
+		}
+	}
+
+	if u.Done.Set && u.Done.Value == nil {
+		return fmt.Errorf("done must not be null: %w", core_errors.ErrInvalidArgument)
+	}
+
+	return nil
+}
+
 func (t *Task) Validate() error {
-	title := strings.TrimSpace(t.Title)
+	if err := validateTaskTitle(t.Title); err != nil {
+		return err
+	}
+
+	return validateTaskDescription(t.Description)
+}
+
+func validateTaskTitle(titleValue string) error {
+	title := strings.TrimSpace(titleValue)
 	titleLen := utf8.RuneCountInString(title)
 
-	if titleLen < 3 || titleLen > 255 {
+	if titleLen < minTaskTitleLength || titleLen > maxTaskTitleLength {
 		return fmt.Errorf(
-			"invalid title length: %d, must be between 3 and 255: %w",
+			"invalid title length: %d, must be between %d and %d: %w",
 			titleLen,
+			minTaskTitleLength,
+			maxTaskTitleLength,
 			core_errors.ErrInvalidArgument,
 		)
 	}
 
-	descriptionLen := utf8.RuneCountInString(t.Description)
-	if descriptionLen > 5000 {
+	return nil
+}
+
+func validateTaskDescription(description string) error {
+	descriptionLen := utf8.RuneCountInString(description)
+	if descriptionLen > maxTaskDescriptionLength {
 		return fmt.Errorf(
-			"invalid description length: %d, must not exceed 5000: %w",
+			"invalid description length: %d, must not exceed %d: %w",
 			descriptionLen,
+			maxTaskDescriptionLength,
 			core_errors.ErrInvalidArgument,
 		)
 	}
+
+	return nil
+}
+
+func (t *Task) ApplyUpdate(patch UpdateTask) error {
+	if err := patch.Validate(); err != nil {
+		return fmt.Errorf("validate task patch: %w", err)
+	}
+
+	tmp := *t
+
+	if patch.Title.Set {
+		tmp.Title = *patch.Title.Value
+	}
+
+	if patch.Description.Set {
+		tmp.Description = *patch.Description.Value
+	}
+
+	if patch.Done.Set {
+		tmp.Done = *patch.Done.Value
+	}
+
+	if err := tmp.Validate(); err != nil {
+		return fmt.Errorf("validate patched task: %w", err)
+	}
+
+	tmp.UpdatedAt = time.Now()
+	*t = tmp
 
 	return nil
 }

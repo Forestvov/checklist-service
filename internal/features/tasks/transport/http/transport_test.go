@@ -40,6 +40,12 @@ type tasksServiceStub struct {
 		taskID int64,
 	) (core_domain.Task, error)
 
+	updateTaskFunc func(
+		ctx context.Context,
+		taskID int64,
+		taskUpdate core_domain.UpdateTask,
+	) (core_domain.Task, error)
+
 	deleteTaskFunc func(
 		ctx context.Context,
 		taskID int64,
@@ -113,6 +119,14 @@ func (s tasksServiceStub) CompleteTask(
 	taskID int64,
 ) (core_domain.Task, error) {
 	return s.completeTaskFunc(ctx, taskID)
+}
+
+func (s tasksServiceStub) UpdateTask(
+	ctx context.Context,
+	taskID int64,
+	taskUpdate core_domain.UpdateTask,
+) (core_domain.Task, error) {
+	return s.updateTaskFunc(ctx, taskID, taskUpdate)
 }
 
 func (s tasksServiceStub) DeleteTask(

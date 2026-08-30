@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	core_errors "github.com/Forestvov/checklist-service/internal/core/errors"
 )
@@ -64,4 +65,215 @@ func TestNewTaskUninitializedWithoutDescription(t *testing.T) {
 	if task.Description != "" {
 		t.Fatalf("expected empty description, got %q", task.Description)
 	}
+}
+
+func TestUpdateTaskValidate(t *testing.T) {
+	tests := []struct {
+		name        string
+		update      UpdateTask
+		expectError bool
+	}{
+		{
+			name: "valid partial title update",
+			update: UpdateTask{
+				Title: setNullable("Updated task"),
+			},
+		},
+		{
+			name: "valid empty description",
+			update: UpdateTask{
+				Description: setNullable(""),
+			},
+		},
+		{
+			name: "valid false done value",
+			update: UpdateTask{
+				Done: setNullable(false),
+			},
+		},
+		{
+			name:        "no fields provided",
+			expectError: true,
+		},
+		{
+			name: "title is null",
+			update: UpdateTask{
+				Title: nullNullable[string](),
+			},
+			expectError: true,
+		},
+		{
+			name: "title is too short after trimming",
+			update: UpdateTask{
+				Title: setNullable("  ab  "),
+			},
+			expectError: true,
+		},
+		{
+			name: "title is too long",
+			update: UpdateTask{
+				Title: setNullable(strings.Repeat("я", 256)),
+			},
+			expectError: true,
+		},
+		{
+			name: "description is null",
+			update: UpdateTask{
+				Description: nullNullable[string](),
+			},
+			expectError: true,
+		},
+		{
+			name: "description is too long",
+			update: UpdateTask{
+				Description: setNullable(strings.Repeat("я", 5001)),
+			},
+			expectError: true,
+		},
+		{
+			name: "done is null",
+			update: UpdateTask{
+				Done: nullNullable[bool](),
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.update.Validate()
+			if tt.expectError && !errors.Is(err, core_errors.ErrInvalidArgument) {
+				t.Fatalf("expected ErrInvalidArgument, got %v", err)
+			}
+			if !tt.expectError && err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+		})
+	}
+}
+
+func TestTaskApplyUpdate(t *testing.T) {
+	createdAt := time.Now().Add(-2 * time.Hour)
+	updatedAt := time.Now().Add(-time.Hour)
+	task := NewTask(
+		1,
+		"Original task",
+		"Original description",
+		false,
+		createdAt,
+		updatedAt,
+	)
+
+	patch := NewUpdateTask(
+		setNullable("Updated task"),
+		setNullable(""),
+		setNullable(true),
+	)
+
+	if err := task.ApplyUpdate(patch); err != nil {
+		t.Fatalf("apply task update: %v", err)
+	}
+
+	if task.Title != "Updated task" {
+		t.Errorf("unexpected title: got %q, want %q", task.Title, "Updated task")
+	}
+	if task.Description != "" {
+		t.Errorf("unexpected description: got %q, want empty", task.Description)
+	}
+	if !task.Done {
+		t.Error("updated task must have done=true")
+	}
+	if task.ID != 1 {
+		t.Errorf("unexpected ID: got %d, want 1", task.ID)
+	}
+	if !task.CreatedAt.Equal(createdAt) {
+		t.Errorf("created_at changed: got %s, want %s", task.CreatedAt, createdAt)
+	}
+	if !task.UpdatedAt.After(updatedAt) {
+		t.Errorf(
+			"updated_at was not refreshed: before %s, after %s",
+			updatedAt,
+			task.UpdatedAt,
+		)
+	}
+}
+
+func TestTaskApplyPartialUpdate(t *testing.T) {
+	updatedAt := time.Now().Add(-time.Hour)
+	task := NewTask(
+		1,
+		"Original task",
+		"Original description",
+		false,
+		time.Now().Add(-2*time.Hour),
+		updatedAt,
+	)
+
+	patch := NewUpdateTask(
+		setNullable("Updated task"),
+		Nullable[string]{},
+		Nullable[bool]{},
+	)
+
+	if err := task.ApplyUpdate(patch); err != nil {
+		t.Fatalf("apply partial task update: %v", err)
+	}
+
+	if task.Title != "Updated task" {
+		t.Errorf("unexpected title: got %q, want %q", task.Title, "Updated task")
+	}
+	if task.Description != "Original description" {
+		t.Errorf(
+			"description changed: got %q, want %q",
+			task.Description,
+			"Original description",
+		)
+	}
+	if task.Done {
+		t.Error("done changed for omitted field")
+	}
+	if !task.UpdatedAt.After(updatedAt) {
+		t.Errorf(
+			"updated_at was not refreshed: before %s, after %s",
+			updatedAt,
+			task.UpdatedAt,
+		)
+	}
+}
+
+func TestTaskApplyInvalidUpdateDoesNotMutateTask(t *testing.T) {
+	task := NewTask(
+		1,
+		"Original task",
+		"Original description",
+		false,
+		time.Now().Add(-2*time.Hour),
+		time.Now().Add(-time.Hour),
+	)
+	original := task
+
+	patch := NewUpdateTask(
+		setNullable("ab"),
+		Nullable[string]{},
+		Nullable[bool]{},
+	)
+
+	err := task.ApplyUpdate(patch)
+	if !errors.Is(err, core_errors.ErrInvalidArgument) {
+		t.Fatalf("expected ErrInvalidArgument, got %v", err)
+	}
+	if task != original {
+		t.Errorf("task changed after rejected update: got %+v, want %+v", task, original)
+	}
+}
+
+func setNullable[T any](value T) Nullable[T] {
+	return Nullable[T]{
+		Value: &value,
+		Set:   true,
+	}
+}
+
+func nullNullable[T any]() Nullable[T] {
+	return Nullable[T]{Set: true}
 }

@@ -196,14 +196,17 @@ const docTemplate = `{
                 }
             },
             "patch": {
-                "description": "Marks the task with the specified integer identifier as completed.\nReturns the updated task with done=true and a refreshed updated_at timestamp.",
+                "description": "Partially updates the task with the specified integer identifier.\nSend at least one of title, description, or done. Omitted fields remain unchanged; null values are not allowed.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored. The description must not exceed 5000 Unicode characters.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "tasks"
                 ],
-                "summary": "Complete a task",
+                "summary": "Update a task",
                 "parameters": [
                     {
                         "type": "integer",
@@ -211,17 +214,26 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_features_tasks_transport_http.UpdateTaskRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Task completed successfully",
+                        "description": "Task updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/internal_features_tasks_transport_http.CompleteTaskResponse"
+                            "$ref": "#/definitions/internal_features_tasks_transport_http.UpdateTaskResponse"
                         }
                     },
                     "400": {
-                        "description": "Task identifier is not a valid integer",
+                        "description": "Malformed JSON, invalid task identifier, or request validation failed",
                         "schema": {
                             "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
                         }
@@ -274,29 +286,6 @@ const docTemplate = `{
                 "total_pages": {
                     "type": "integer",
                     "example": 3
-                }
-            }
-        },
-        "internal_features_tasks_transport_http.CompleteTaskResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "done": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },
@@ -382,6 +371,49 @@ const docTemplate = `{
             }
         },
         "internal_features_tasks_transport_http.TaskDTOResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "done": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_features_tasks_transport_http.UpdateTaskRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "example": "Milk, bread and eggs"
+                },
+                "done": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3,
+                    "example": "Buy groceries"
+                }
+            }
+        },
+        "internal_features_tasks_transport_http.UpdateTaskResponse": {
             "type": "object",
             "properties": {
                 "created_at": {

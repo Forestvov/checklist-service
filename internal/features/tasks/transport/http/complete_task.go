@@ -11,18 +11,6 @@ import (
 type CompleteTaskResponse TaskDTOResponse
 
 // CompleteTask marks a task as completed.
-//
-// @Summary Complete a task
-// @Description Marks the task with the specified integer identifier as completed.
-// @Description Returns the updated task with done=true and a refreshed updated_at timestamp.
-// @Tags tasks
-// @Produce json
-// @Param id path int true "Task identifier"
-// @Success 200 {object} CompleteTaskResponse "Task completed successfully"
-// @Failure 400 {object} core_http_response.ErrorResponse "Task identifier is not a valid integer"
-// @Failure 404 {object} core_http_response.ErrorResponse "Task not found"
-// @Failure 500 {object} core_http_response.ErrorResponse "Unexpected server error"
-// @Router /api/v1/tasks/{id} [patch]
 func (h *TasksHTTPHandler) CompleteTask(
 	rw http.ResponseWriter,
 	r *http.Request,

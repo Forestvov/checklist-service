@@ -32,6 +32,12 @@ type TaskRepository interface {
 		taskID int64,
 	) (core_domain.Task, error)
 
+	UpdateTask(
+		ctx context.Context,
+		taskID int64,
+		taskUpdate core_domain.Task,
+	) (core_domain.Task, error)
+
 	DeleteTask(
 		ctx context.Context,
 		taskID int64,
