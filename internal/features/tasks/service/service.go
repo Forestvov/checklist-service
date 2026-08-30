@@ -20,6 +20,7 @@ type TaskRepository interface {
 	GetTasks(
 		ctx context.Context,
 		paginationParams core_pagination.Params,
+		filter core_domain.TaskFilter,
 	) (core_pagination.Result[core_domain.Task], error)
 
 	GetTask(

@@ -120,7 +120,7 @@ func assertCreateTaskRejected(t *testing.T, input core_domain.Task) {
 		t.Fatalf("create default pagination params: %v", err)
 	}
 
-	result, err := repository.GetTasks(ctx, params)
+	result, err := repository.GetTasks(ctx, params, core_domain.TaskFilter{})
 	if err != nil {
 		t.Fatalf("get tasks after rejected creation: %v", err)
 	}

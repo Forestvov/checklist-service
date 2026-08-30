@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/api/v1/tasks": {
             "get": {
-                "description": "Returns tasks ordered from newest to oldest using page-based pagination.\nIf page or per_page is omitted, the defaults are page=1 and per_page=20.\nA page beyond the available range returns an empty data array with the requested pagination metadata.",
+                "description": "Returns tasks ordered from newest to oldest using page-based pagination.\nIf page or per_page is omitted, the defaults are page=1 and per_page=20.\nIf done is omitted, tasks of both statuses are returned.\nA page beyond the available range returns an empty data array with the requested pagination metadata.",
                 "produces": [
                     "application/json"
                 ],
@@ -42,6 +42,12 @@ const docTemplate = `{
                         "description": "Number of tasks per page",
                         "name": "per_page",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by completion status",
+                        "name": "done",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -52,7 +58,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid pagination parameters",
+                        "description": "Invalid pagination or filter parameters",
                         "schema": {
                             "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
                         }

@@ -48,14 +48,19 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 
 	const totalTasks int64 = 5
 
-	var serviceParams core_pagination.Params
+	var (
+		serviceParams core_pagination.Params
+		serviceFilter core_domain.TaskFilter
+	)
 
 	service := tasksServiceStub{
 		getTasksFunc: func(
 			_ context.Context,
 			paginationParams core_pagination.Params,
+			filter core_domain.TaskFilter,
 		) (core_pagination.Result[core_domain.Task], error) {
 			serviceParams = paginationParams
+			serviceFilter = filter
 
 			return core_pagination.NewResult(
 				expectedTasks,
@@ -100,6 +105,9 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			2,
 			serviceParams.PerPage,
 		)
+	}
+	if serviceFilter.Done != nil {
+		t.Errorf("expected empty done filter, got %+v", serviceFilter)
 	}
 
 	var response GetTasksResponse
@@ -171,6 +179,7 @@ func TestTasksHTTPHandlerGetTasksDefaultPagination(t *testing.T) {
 		getTasksFunc: func(
 			_ context.Context,
 			params core_pagination.Params,
+			filter core_domain.TaskFilter,
 		) (core_pagination.Result[core_domain.Task], error) {
 			serviceParams = params
 
@@ -268,6 +277,103 @@ func TestTasksHTTPHandlerGetTasksDefaultPagination(t *testing.T) {
 	}
 }
 
+func TestTasksHTTPHandlerGetTasksDoneFilter(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+		want  bool
+	}{
+		{name: "completed tasks", query: "?done=true", want: true},
+		{name: "uncompleted tasks", query: "?done=false", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var serviceFilter core_domain.TaskFilter
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					params core_pagination.Params,
+					filter core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					serviceFilter = filter
+					return core_pagination.NewResult[core_domain.Task](nil, 0, params), nil
+				},
+			}
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/api/v1/tasks"+tt.query,
+				nil,
+			)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			NewTasksHTTPHandler(service).GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+			}
+			if serviceFilter.Done == nil {
+				t.Fatal("expected done filter, got nil")
+			}
+			if *serviceFilter.Done != tt.want {
+				t.Errorf("expected done=%t, got %t", tt.want, *serviceFilter.Done)
+			}
+		})
+	}
+}
+
+func TestTasksHTTPHandlerGetTasksInvalidDoneFilter(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+	}{
+		{name: "empty value", query: "?done="},
+		{name: "invalid value", query: "?done=task"},
+		{name: "multiple values", query: "?done=true&done=false"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serviceCalled := false
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					_ core_pagination.Params,
+					_ core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					serviceCalled = true
+					return core_pagination.Result[core_domain.Task]{}, nil
+				},
+			}
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/api/v1/tasks"+tt.query,
+				nil,
+			)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			NewTasksHTTPHandler(service).GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("expected status %d, got %d", http.StatusBadRequest, recorder.Code)
+			}
+			if serviceCalled {
+				t.Fatal("service must not be called for an invalid done filter")
+			}
+			response := decodeErrorResponse(t, recorder)
+			if response.Error != core_errors.ErrInvalidArgument.Error() {
+				t.Errorf(
+					"expected error %q, got %q",
+					core_errors.ErrInvalidArgument,
+					response.Error,
+				)
+			}
+		})
+	}
+}
+
 func TestTasksHTTPHandlerGetTasksInvalidPagination(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -289,6 +395,7 @@ func TestTasksHTTPHandlerGetTasksInvalidPagination(t *testing.T) {
 				getTasksFunc: func(
 					_ context.Context,
 					_ core_pagination.Params,
+					_ core_domain.TaskFilter,
 				) (core_pagination.Result[core_domain.Task], error) {
 					serviceCalled = true
 					return core_pagination.Result[core_domain.Task]{}, nil
@@ -335,6 +442,7 @@ func TestTasksHTTPHandlerGetTasksServiceError(t *testing.T) {
 		getTasksFunc: func(
 			_ context.Context,
 			params core_pagination.Params,
+			_ core_domain.TaskFilter,
 		) (core_pagination.Result[core_domain.Task], error) {
 			return core_pagination.NewResult[core_domain.Task](
 				nil,

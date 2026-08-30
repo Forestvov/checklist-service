@@ -29,6 +29,35 @@ func GetIntQueryParam(r *http.Request, key string) (*int, error) {
 	return &val, nil
 }
 
+func GetBoolQueryParam(r *http.Request, key string) (*bool, error) {
+	params, exists := r.URL.Query()[key]
+	if !exists {
+		return nil, nil
+	}
+	if len(params) != 1 || params[0] == "" {
+		return nil, fmt.Errorf(
+			"query parameter by key='%s' must contain one non-empty boolean value: %w",
+			key,
+			core_errors.ErrInvalidArgument,
+		)
+	}
+
+	param := params[0]
+
+	value, err := strconv.ParseBool(param)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"param='%s' by key='%s' not a valid boolean: %v: %w",
+			param,
+			key,
+			err,
+			core_errors.ErrInvalidArgument,
+		)
+	}
+
+	return &value, nil
+}
+
 func GetDateQueryParam(r *http.Request, key string) (*time.Time, error) {
 	param := r.URL.Query().Get(key)
 	if param == "" {

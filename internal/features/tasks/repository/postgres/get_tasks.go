@@ -11,6 +11,7 @@ import (
 func (r *TasksRepository) GetTasks(
 	ctx context.Context,
 	paginationParams core_pagination.Params,
+	filter core_domain.TaskFilter,
 ) (core_pagination.Result[core_domain.Task], error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
@@ -19,24 +20,36 @@ func (r *TasksRepository) GetTasks(
 
 	countSQL := `
 		SELECT COUNT(*)
-		FROM checklist.tasks;
+		FROM checklist.tasks
+		WHERE ($1::boolean IS NULL OR done = $1);
 	`
 
+	var done any
+	if filter.Done != nil {
+		done = *filter.Done
+	}
+
 	var total int64
-	if err := r.pool.QueryRow(ctx, countSQL).Scan(&total); err != nil {
+	if err := r.pool.QueryRow(
+		ctx,
+		countSQL,
+		done,
+	).Scan(&total); err != nil {
 		return emptyResult, fmt.Errorf("count tasks: %w", err)
 	}
 
 	selectSQL := `
 		SELECT id, title, description, done, created_at, updated_at
 		FROM checklist.tasks
+		WHERE ($1::boolean IS NULL OR done = $1)
 		ORDER BY id DESC
-		LIMIT $1 OFFSET $2;
+		LIMIT $2 OFFSET $3;
 	`
 
 	rows, err := r.pool.Query(
 		ctx,
 		selectSQL,
+		done,
 		paginationParams.Limit(),
 		paginationParams.Offset(),
 	)

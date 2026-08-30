@@ -43,15 +43,22 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 		5,
 		paginationParams,
 	)
+	done := true
+	filter := core_domain.NewTaskFilter(&done)
 
-	var repositoryParams core_pagination.Params
+	var (
+		repositoryParams core_pagination.Params
+		repositoryFilter core_domain.TaskFilter
+	)
 
 	repository := taskRepositoryStub{
 		getTasksFunc: func(
 			_ context.Context,
 			params core_pagination.Params,
+			filter core_domain.TaskFilter,
 		) (core_pagination.Result[core_domain.Task], error) {
 			repositoryParams = params
+			repositoryFilter = filter
 
 			return expectedResult, nil
 		},
@@ -62,6 +69,7 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 	actualResult, err := service.GetTasks(
 		context.Background(),
 		paginationParams,
+		filter,
 	)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -73,6 +81,9 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 			paginationParams,
 			repositoryParams,
 		)
+	}
+	if repositoryFilter.Done == nil || !*repositoryFilter.Done {
+		t.Errorf("expected done=true filter, got %+v", repositoryFilter)
 	}
 
 	if !slices.Equal(actualResult.Items, expectedResult.Items) {
@@ -107,6 +118,8 @@ func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 	}
 
 	repositoryError := errors.New("database unavailable")
+	done := false
+	filter := core_domain.NewTaskFilter(&done)
 	repositoryResult := core_pagination.NewResult(
 		[]core_domain.Task{
 			{ID: defaultTaskID, Title: "Unexpected task"},
@@ -115,14 +128,19 @@ func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 		paginationParams,
 	)
 
-	var repositoryParams core_pagination.Params
+	var (
+		repositoryParams core_pagination.Params
+		repositoryFilter core_domain.TaskFilter
+	)
 
 	repository := taskRepositoryStub{
 		getTasksFunc: func(
 			_ context.Context,
 			params core_pagination.Params,
+			filter core_domain.TaskFilter,
 		) (core_pagination.Result[core_domain.Task], error) {
 			repositoryParams = params
+			repositoryFilter = filter
 
 			return repositoryResult, repositoryError
 		},
@@ -133,6 +151,7 @@ func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 	actualResult, err := service.GetTasks(
 		context.Background(),
 		paginationParams,
+		filter,
 	)
 
 	if !errors.Is(err, repositoryError) {
@@ -148,6 +167,9 @@ func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 			paginationParams,
 			repositoryParams,
 		)
+	}
+	if repositoryFilter.Done == nil || *repositoryFilter.Done {
+		t.Errorf("expected done=false filter, got %+v", repositoryFilter)
 	}
 
 	if actualResult.Items != nil {

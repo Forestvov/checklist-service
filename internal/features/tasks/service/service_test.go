@@ -18,6 +18,7 @@ type taskRepositoryStub struct {
 	getTasksFunc func(
 		ctx context.Context,
 		paginationParams core_pagination.Params,
+		filter core_domain.TaskFilter,
 	) (core_pagination.Result[core_domain.Task], error)
 
 	getTaskFunc func(
@@ -47,8 +48,9 @@ func (s taskRepositoryStub) CreateTask(
 func (s taskRepositoryStub) GetTasks(
 	ctx context.Context,
 	paginationParams core_pagination.Params,
+	filter core_domain.TaskFilter,
 ) (core_pagination.Result[core_domain.Task], error) {
-	return s.getTasksFunc(ctx, paginationParams)
+	return s.getTasksFunc(ctx, paginationParams, filter)
 }
 
 func (s taskRepositoryStub) GetTask(

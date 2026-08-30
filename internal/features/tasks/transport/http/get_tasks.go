@@ -1,8 +1,10 @@
 package tasks_transport_http
 
 import (
+	"fmt"
 	"net/http"
 
+	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_logger "github.com/Forestvov/checklist-service/internal/core/logger"
 	core_http_request "github.com/Forestvov/checklist-service/internal/core/transport/http/request"
 	core_http_response "github.com/Forestvov/checklist-service/internal/core/transport/http/response"
@@ -18,13 +20,15 @@ type GetTasksResponse struct {
 // @Summary Get tasks
 // @Description Returns tasks ordered from newest to oldest using page-based pagination.
 // @Description If page or per_page is omitted, the defaults are page=1 and per_page=20.
+// @Description If done is omitted, tasks of both statuses are returned.
 // @Description A page beyond the available range returns an empty data array with the requested pagination metadata.
 // @Tags tasks
 // @Produce json
 // @Param page query int false "Page number" default(1) minimum(1)
 // @Param per_page query int false "Number of tasks per page" default(20) minimum(1) maximum(100)
+// @Param done query bool false "Filter by completion status"
 // @Success 200 {object} GetTasksResponse "Paginated task list"
-// @Failure 400 {object} core_http_response.ErrorResponse "Invalid pagination parameters"
+// @Failure 400 {object} core_http_response.ErrorResponse "Invalid pagination or filter parameters"
 // @Failure 500 {object} core_http_response.ErrorResponse "Unexpected server error"
 // @Router /api/v1/tasks [get]
 func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
@@ -41,9 +45,23 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	done, err := getTasksDoneQueryParams(r)
+	if err != nil {
+		responseHandler.ErrorResponse(
+			err,
+			"failed to get task filter parameters",
+		)
+		return
+	}
+
+	filter := core_domain.NewTaskFilter(
+		done,
+	)
+
 	tasksResult, err := h.tasksService.GetTasks(
 		ctx,
 		paginationParams,
+		filter,
 	)
 	if err != nil {
 		responseHandler.ErrorResponse(
@@ -58,4 +76,15 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 		Meta: core_http_response.PaginationMetaFromResult(tasksResult),
 	}
 	responseHandler.JSONResponse(response, http.StatusOK)
+}
+
+func getTasksDoneQueryParams(r *http.Request) (*bool, error) {
+	const doneParam = "done"
+
+	done, err := core_http_request.GetBoolQueryParam(r, doneParam)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get done param: %w", err)
+	}
+
+	return done, nil
 }
