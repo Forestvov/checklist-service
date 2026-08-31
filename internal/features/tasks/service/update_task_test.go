@@ -17,6 +17,7 @@ func TestTaskServiceUpdateTaskSuccess(t *testing.T) {
 		"Buy groceries",
 		"Milk and bread",
 		false,
+		core_domain.DefaultTaskPriority,
 		createdAt,
 		createdAt,
 	)
@@ -27,11 +28,13 @@ func TestTaskServiceUpdateTaskSuccess(t *testing.T) {
 		core_domain.Nullable[string]{},
 		setDomainNullable(newDescription),
 		setDomainNullable(done),
+		setDomainNullable(core_domain.TaskPriorityHigh),
 	)
 
 	repositoryResult := original
 	repositoryResult.Description = newDescription
 	repositoryResult.Done = done
+	repositoryResult.Priority = core_domain.TaskPriorityHigh
 	repositoryResult.UpdatedAt = createdAt.Add(time.Hour)
 
 	var (
@@ -84,6 +87,9 @@ func TestTaskServiceUpdateTaskSuccess(t *testing.T) {
 	if !updateTaskValue.Done {
 		t.Error("expected done to be true")
 	}
+	if updateTaskValue.Priority != core_domain.TaskPriorityHigh {
+		t.Errorf("expected priority %q, got %q", core_domain.TaskPriorityHigh, updateTaskValue.Priority)
+	}
 	if updateTaskValue.UpdatedAt.Before(beforeUpdate) || updateTaskValue.UpdatedAt.After(afterUpdate) {
 		t.Errorf("expected updated_at between %v and %v, got %v", beforeUpdate, afterUpdate, updateTaskValue.UpdatedAt)
 	}
@@ -131,6 +137,7 @@ func TestTaskServiceUpdateTaskInvalidPatch(t *testing.T) {
 		"Buy groceries",
 		"Milk and bread",
 		false,
+		core_domain.DefaultTaskPriority,
 		time.Now(),
 		time.Now(),
 	)
@@ -172,6 +179,7 @@ func TestTaskServiceUpdateTaskRepositoryError(t *testing.T) {
 		"Buy groceries",
 		"Milk and bread",
 		false,
+		core_domain.DefaultTaskPriority,
 		time.Now(),
 		time.Now(),
 	)
@@ -196,6 +204,7 @@ func TestTaskServiceUpdateTaskRepositoryError(t *testing.T) {
 			setDomainNullable(title),
 			core_domain.Nullable[string]{},
 			core_domain.Nullable[bool]{},
+			core_domain.Nullable[core_domain.TaskPriority]{},
 		),
 	)
 	if !errors.Is(err, repositoryError) {

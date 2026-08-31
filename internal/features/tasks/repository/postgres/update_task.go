@@ -23,9 +23,10 @@ func (r *TasksRepository) UpdateTask(
 		SET title = $2,
 			description = $3,
 			done = $4,
-			updated_at = $5
+			priority = $5,
+			updated_at = $6
 		WHERE id = $1
-		RETURNING id, title, description, done, created_at, updated_at;
+		RETURNING id, title, description, done, priority, created_at, updated_at;
 		`
 
 	row := r.pool.QueryRow(
@@ -35,6 +36,7 @@ func (r *TasksRepository) UpdateTask(
 		taskUpdate.Title,
 		taskUpdate.Description,
 		taskUpdate.Done,
+		taskUpdate.Priority,
 		taskUpdate.UpdatedAt,
 	)
 
@@ -44,6 +46,7 @@ func (r *TasksRepository) UpdateTask(
 		&taskModel.Title,
 		&taskModel.Description,
 		&taskModel.Done,
+		&taskModel.Priority,
 		&taskModel.CreatedAt,
 		&taskModel.UpdatedAt,
 	)

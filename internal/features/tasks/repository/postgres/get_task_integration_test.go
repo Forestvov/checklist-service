@@ -18,6 +18,7 @@ func TestTasksRepositoryGetTaskSuccess(t *testing.T) {
 	input := core_domain.NewTaskUninitialized(
 		"Buy groceries",
 		&description,
+		nil,
 	)
 
 	expected, err := repository.CreateTask(ctx, input)

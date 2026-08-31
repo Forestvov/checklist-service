@@ -1,4 +1,16 @@
 definitions:
+  github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority:
+    enum:
+    - low
+    - medium
+    - high
+    - medium
+    type: string
+    x-enum-varnames:
+    - TaskPriorityLow
+    - TaskPriorityMedium
+    - TaskPriorityHigh
+    - DefaultTaskPriority
   github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse:
     properties:
       error:
@@ -30,6 +42,14 @@ definitions:
         example: Milk, bread, and vegetables
         maxLength: 5000
         type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority'
+        enum:
+        - low
+        - medium
+        - high
+        example: medium
       title:
         description: |-
           Title is required and must contain between 3 and 255 Unicode characters
@@ -51,6 +71,13 @@ definitions:
         type: boolean
       id:
         type: integer
+      priority:
+        allOf:
+        - $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority'
+        enum:
+        - low
+        - medium
+        - high
       title:
         type: string
       updated_at:
@@ -66,6 +93,13 @@ definitions:
         type: boolean
       id:
         type: integer
+      priority:
+        allOf:
+        - $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority'
+        enum:
+        - low
+        - medium
+        - high
       title:
         type: string
       updated_at:
@@ -90,6 +124,13 @@ definitions:
         type: boolean
       id:
         type: integer
+      priority:
+        allOf:
+        - $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority'
+        enum:
+        - low
+        - medium
+        - high
       title:
         type: string
       updated_at:
@@ -104,6 +145,13 @@ definitions:
       done:
         example: true
         type: boolean
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        example: medium
+        type: string
       title:
         example: Buy groceries
         maxLength: 255
@@ -120,6 +168,13 @@ definitions:
         type: boolean
       id:
         type: integer
+      priority:
+        allOf:
+        - $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority'
+        enum:
+        - low
+        - medium
+        - high
       title:
         type: string
       updated_at:
@@ -193,7 +248,8 @@ paths:
       consumes:
       - application/json
       description: |-
-        Creates a new task with a required title and an optional description.
+        Creates a task with a required title and optional description and priority.
+        Priority may be low, medium, or high. The default is medium.
         The title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.
         The description may be omitted and must not exceed 5000 Unicode characters when provided.
       parameters:

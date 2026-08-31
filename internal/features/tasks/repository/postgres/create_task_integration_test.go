@@ -15,9 +15,11 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 	ctx := newTestContext(t)
 
 	description := "Milk, bread and vegetables"
+	priority := core_domain.TaskPriorityHigh
 	input := core_domain.NewTaskUninitialized(
 		"Buy groceries",
 		&description,
+		&priority,
 	)
 
 	created, err := repository.CreateTask(ctx, input)
@@ -42,6 +44,9 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 
 	if created.Done {
 		t.Error("new task must not be completed")
+	}
+	if created.Priority != priority {
+		t.Errorf("unexpected priority: got %q, want %q", created.Priority, priority)
 	}
 
 	if created.CreatedAt.IsZero() {
@@ -72,6 +77,9 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 	if stored.Done != created.Done {
 		t.Errorf("unexpected stored done: got %t, want %t", stored.Done, created.Done)
 	}
+	if stored.Priority != created.Priority {
+		t.Errorf("unexpected stored priority: got %q, want %q", stored.Priority, created.Priority)
+	}
 	if !stored.CreatedAt.Equal(created.CreatedAt) {
 		t.Errorf(
 			"unexpected stored created_at: got %s, want %s",
@@ -89,14 +97,14 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 }
 
 func TestTasksRepositoryCreateTaskRejectsInvalidTitle(t *testing.T) {
-	input := core_domain.NewTaskUninitialized("ab", nil)
+	input := core_domain.NewTaskUninitialized("ab", nil, nil)
 
 	assertCreateTaskRejected(t, input)
 }
 
 func TestTasksRepositoryCreateTaskRejectsLongDescription(t *testing.T) {
 	description := strings.Repeat("a", 5001)
-	input := core_domain.NewTaskUninitialized("Valid title", &description)
+	input := core_domain.NewTaskUninitialized("Valid title", &description, nil)
 
 	assertCreateTaskRejected(t, input)
 }

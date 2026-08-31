@@ -14,7 +14,8 @@ type CreateTaskRequest struct {
 	// after leading and trailing whitespace is ignored.
 	Title string `json:"title" validate:"required,min=3,max=255" minLength:"3" maxLength:"255" example:"Buy groceries"`
 	// Description is optional and may contain up to 5000 Unicode characters.
-	Description *string `json:"description" validate:"omitempty,max=5000" maxLength:"5000" example:"Milk, bread, and vegetables"`
+	Description *string                   `json:"description" validate:"omitempty,max=5000" maxLength:"5000" example:"Milk, bread, and vegetables"`
+	Priority    *core_domain.TaskPriority `json:"priority" enums:"low,medium,high" example:"medium"`
 }
 
 type CreateTaskResponse TaskDTOResponse
@@ -23,6 +24,7 @@ func (request CreateTaskRequest) Validate() error {
 	task := core_domain.NewTaskUninitialized(
 		request.Title,
 		request.Description,
+		request.Priority,
 	)
 
 	return task.Validate()
@@ -31,7 +33,8 @@ func (request CreateTaskRequest) Validate() error {
 // CreateTask creates a new task.
 //
 // @Summary Create a task
-// @Description Creates a new task with a required title and an optional description.
+// @Description Creates a task with a required title and optional description and priority.
+// @Description Priority may be low, medium, or high. The default is medium.
 // @Description The title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.
 // @Description The description may be omitted and must not exceed 5000 Unicode characters when provided.
 // @Tags tasks
@@ -62,6 +65,7 @@ func (h *TasksHTTPHandler) CreateTask(
 	taskDomain := core_domain.NewTaskUninitialized(
 		request.Title,
 		request.Description,
+		request.Priority,
 	)
 
 	taskDomain, err := h.tasksService.CreateTask(ctx, taskDomain)

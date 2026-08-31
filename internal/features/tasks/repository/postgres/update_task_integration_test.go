@@ -17,7 +17,7 @@ func TestTasksRepositoryUpdateTaskSuccess(t *testing.T) {
 
 	created, err := repository.CreateTask(
 		ctx,
-		core_domain.NewTaskUninitialized("Original task", nil),
+		core_domain.NewTaskUninitialized("Original task", nil, nil),
 	)
 	if err != nil {
 		t.Fatalf("prepare task: %v", err)
@@ -27,6 +27,7 @@ func TestTasksRepositoryUpdateTaskSuccess(t *testing.T) {
 	updated.Title = "Updated task"
 	updated.Description = "Updated description"
 	updated.Done = true
+	updated.Priority = core_domain.TaskPriorityHigh
 	updated.UpdatedAt = created.UpdatedAt.Add(time.Hour)
 
 	actual, err := repository.UpdateTask(ctx, created.ID, updated)
@@ -57,6 +58,7 @@ func TestTasksRepositoryUpdateTaskNotFound(t *testing.T) {
 			Title:       "Updated task",
 			Description: "Updated description",
 			Done:        true,
+			Priority:    core_domain.TaskPriorityHigh,
 			UpdatedAt:   time.Now(),
 		},
 	)
@@ -74,7 +76,7 @@ func TestTasksRepositoryUpdateTaskRejectsInvalidTask(t *testing.T) {
 
 	created, err := repository.CreateTask(
 		ctx,
-		core_domain.NewTaskUninitialized("Original task", nil),
+		core_domain.NewTaskUninitialized("Original task", nil, nil),
 	)
 	if err != nil {
 		t.Fatalf("prepare task: %v", err)
@@ -118,6 +120,9 @@ func assertTasksEqual(t *testing.T, actual, expected core_domain.Task) {
 	}
 	if actual.Done != expected.Done {
 		t.Errorf("unexpected done: got %t, want %t", actual.Done, expected.Done)
+	}
+	if actual.Priority != expected.Priority {
+		t.Errorf("unexpected priority: got %q, want %q", actual.Priority, expected.Priority)
 	}
 	if !actual.CreatedAt.Equal(expected.CreatedAt) {
 		t.Errorf(

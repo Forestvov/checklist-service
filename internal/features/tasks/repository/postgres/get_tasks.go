@@ -59,7 +59,7 @@ func (r *TasksRepository) GetTasks(
 	orderBy := orderColumn + " " + orderDirection
 
 	selectSQL := fmt.Sprintf(`
-		SELECT id, title, description, done, created_at, updated_at
+		SELECT id, title, description, done, priority, created_at, updated_at
 		FROM checklist.tasks
 		WHERE ($1::boolean IS NULL OR done = $1)
 		ORDER BY %s, id %s
@@ -87,6 +87,7 @@ func (r *TasksRepository) GetTasks(
 			&taskModel.Title,
 			&taskModel.Description,
 			&taskModel.Done,
+			&taskModel.Priority,
 			&taskModel.CreatedAt,
 			&taskModel.UpdatedAt,
 		)

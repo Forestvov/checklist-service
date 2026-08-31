@@ -15,9 +15,9 @@ func (r *TasksRepository) CreateTask(
 	defer cancel()
 
 	sql := `
-		INSERT INTO checklist.tasks (title, description, done, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, title, description, done, created_at, updated_at;
+		INSERT INTO checklist.tasks (title, description, done, priority, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, title, description, done, priority, created_at, updated_at;
 	`
 
 	row := r.pool.QueryRow(
@@ -26,6 +26,7 @@ func (r *TasksRepository) CreateTask(
 		task.Title,
 		task.Description,
 		task.Done,
+		task.Priority,
 		task.CreatedAt,
 		task.UpdatedAt,
 	)
@@ -36,6 +37,7 @@ func (r *TasksRepository) CreateTask(
 		&taskModel.Title,
 		&taskModel.Description,
 		&taskModel.Done,
+		&taskModel.Priority,
 		&taskModel.CreatedAt,
 		&taskModel.UpdatedAt,
 	)
@@ -48,6 +50,7 @@ func (r *TasksRepository) CreateTask(
 		taskModel.Title,
 		taskModel.Description,
 		taskModel.Done,
+		taskModel.Priority,
 		taskModel.CreatedAt,
 		taskModel.UpdatedAt,
 	)

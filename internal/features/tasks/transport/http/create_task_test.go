@@ -31,6 +31,7 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 				task.Title,
 				task.Description,
 				false,
+				task.Priority,
 				now,
 				now,
 			), nil
@@ -44,7 +45,8 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 		"/api/v1/tasks",
 		strings.NewReader(`{
 			"title": "Buy groceries",
-			"description": "Milk and bread"
+			"description": "Milk and bread",
+			"priority": "high"
 		}`),
 	)
 	request = requestWithTestLogger(request)
@@ -85,6 +87,13 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 	if serviceArgument.Done {
 		t.Error("expected uncompleted service task")
 	}
+	if serviceArgument.Priority != core_domain.TaskPriorityHigh {
+		t.Errorf(
+			"expected priority %q, got %q",
+			core_domain.TaskPriorityHigh,
+			serviceArgument.Priority,
+		)
+	}
 
 	var response CreateTaskResponse
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
@@ -102,6 +111,47 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 			response.Title,
 		)
 	}
+
+	if response.Priority != core_domain.TaskPriorityHigh {
+		t.Errorf(
+			"expected response priority %q, got %q",
+			core_domain.TaskPriorityHigh,
+			response.Priority,
+		)
+	}
+}
+
+func TestTasksHTTPHandlerCreateTaskDefaultPriority(t *testing.T) {
+	var serviceArgument core_domain.Task
+	service := tasksServiceStub{
+		createTaskFunc: func(
+			_ context.Context,
+			task core_domain.Task,
+		) (core_domain.Task, error) {
+			serviceArgument = task
+			return task, nil
+		},
+	}
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/tasks",
+		strings.NewReader(`{"title":"Buy groceries"}`),
+	)
+	request = requestWithTestLogger(request)
+	recorder := httptest.NewRecorder()
+
+	NewTasksHTTPHandler(service).CreateTask(recorder, request)
+
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("expected status %d, got %d", http.StatusCreated, recorder.Code)
+	}
+	if serviceArgument.Priority != core_domain.DefaultTaskPriority {
+		t.Errorf(
+			"expected default priority %q, got %q",
+			core_domain.DefaultTaskPriority,
+			serviceArgument.Priority,
+		)
+	}
 }
 
 func TestTasksHTTPHandlerCreateTaskInvalidRequest(t *testing.T) {
@@ -111,7 +161,9 @@ func TestTasksHTTPHandlerCreateTaskInvalidRequest(t *testing.T) {
 	}{
 		{name: "empty body", body: ""},
 		{name: "malformed JSON", body: `{"title":`},
-		{name: "unknown field", body: `{"title":"Task","priority":1}`},
+		{name: "wrong priority type", body: `{"title":"Task","priority":1}`},
+		{name: "unsupported priority", body: `{"title":"Task","priority":"critical"}`},
+		{name: "unknown field", body: `{"title":"Task","unknown":true}`},
 		{name: "multiple JSON values", body: `{"title":"Task"} {"title":"Other"}`},
 		{name: "title too short after trimming", body: `{"title":"  a  "}`},
 		{
@@ -212,6 +264,8 @@ func TestTasksHTTPHandlerCreateTaskServiceError(t *testing.T) {
 
 func TestCreateTaskRequestValidate(t *testing.T) {
 	tooLongDescription := strings.Repeat("я", 5001)
+	highPriority := core_domain.TaskPriorityHigh
+	unsupportedPriority := core_domain.TaskPriority("critical")
 
 	tests := []struct {
 		name        string
@@ -220,6 +274,13 @@ func TestCreateTaskRequestValidate(t *testing.T) {
 	}{
 		{name: "valid request", request: CreateTaskRequest{Title: "Task"}},
 		{
+			name: "valid high priority",
+			request: CreateTaskRequest{
+				Title:    "Task",
+				Priority: &highPriority,
+			},
+		},
+		{
 			name:        "title too short after trimming",
 			request:     CreateTaskRequest{Title: "  a  "},
 			expectError: true,
@@ -227,6 +288,14 @@ func TestCreateTaskRequestValidate(t *testing.T) {
 		{
 			name:        "description too long",
 			request:     CreateTaskRequest{Title: "Task", Description: &tooLongDescription},
+			expectError: true,
+		},
+		{
+			name: "unsupported priority",
+			request: CreateTaskRequest{
+				Title:    "Task",
+				Priority: &unsupportedPriority,
+			},
 			expectError: true,
 		},
 	}

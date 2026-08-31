@@ -7,12 +7,13 @@ import (
 )
 
 type TaskDTOResponse struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Done        bool      `json:"done"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          int64                    `json:"id"`
+	Title       string                   `json:"title"`
+	Description string                   `json:"description"`
+	Done        bool                     `json:"done"`
+	Priority    core_domain.TaskPriority `json:"priority" enums:"low,medium,high"`
+	CreatedAt   time.Time                `json:"created_at"`
+	UpdatedAt   time.Time                `json:"updated_at"`
 }
 
 func taskDTOFromDomain(task core_domain.Task) TaskDTOResponse {
@@ -21,6 +22,7 @@ func taskDTOFromDomain(task core_domain.Task) TaskDTOResponse {
 		Title:       task.Title,
 		Description: task.Description,
 		Done:        task.Done,
+		Priority:    task.Priority,
 		CreatedAt:   task.CreatedAt,
 		UpdatedAt:   task.UpdatedAt,
 	}

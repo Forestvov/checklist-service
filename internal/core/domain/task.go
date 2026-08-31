@@ -20,6 +20,7 @@ type Task struct {
 	Title       string
 	Description string
 	Done        bool
+	Priority    TaskPriority
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -29,6 +30,7 @@ func NewTask(
 	title string,
 	description string,
 	done bool,
+	priority TaskPriority,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) Task {
@@ -37,6 +39,7 @@ func NewTask(
 		Title:       title,
 		Description: description,
 		Done:        done,
+		Priority:    priority,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
 	}
@@ -45,10 +48,16 @@ func NewTask(
 func NewTaskUninitialized(
 	title string,
 	description *string,
+	priority *TaskPriority,
 ) Task {
 	descriptionValue := ""
 	if description != nil {
 		descriptionValue = *description
+	}
+
+	priorityValue := DefaultTaskPriority
+	if priority != nil {
+		priorityValue = *priority
 	}
 
 	now := time.Now()
@@ -58,6 +67,7 @@ func NewTaskUninitialized(
 		title,
 		descriptionValue,
 		false,
+		priorityValue,
 		now,
 		now,
 	)
@@ -67,22 +77,28 @@ type UpdateTask struct {
 	Title       Nullable[string]
 	Description Nullable[string]
 	Done        Nullable[bool]
+	Priority    Nullable[TaskPriority]
 }
 
 func NewUpdateTask(
 	title Nullable[string],
 	description Nullable[string],
 	done Nullable[bool],
+	priority Nullable[TaskPriority],
 ) UpdateTask {
 	return UpdateTask{
 		Title:       title,
 		Description: description,
 		Done:        done,
+		Priority:    priority,
 	}
 }
 
 func (u UpdateTask) Validate() error {
-	if !u.Title.Set && !u.Description.Set && !u.Done.Set {
+	if !u.Title.Set &&
+		!u.Description.Set &&
+		!u.Done.Set &&
+		!u.Priority.Set {
 		return fmt.Errorf("at least one task field must be provided: %w", core_errors.ErrInvalidArgument)
 	}
 
@@ -110,6 +126,19 @@ func (u UpdateTask) Validate() error {
 		return fmt.Errorf("done must not be null: %w", core_errors.ErrInvalidArgument)
 	}
 
+	if u.Priority.Set {
+		if u.Priority.Value == nil {
+			return fmt.Errorf(
+				"priority must not be null: %w",
+				core_errors.ErrInvalidArgument,
+			)
+		}
+
+		if err := u.Priority.Value.Validate(); err != nil {
+			return fmt.Errorf("validate priority: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -118,7 +147,15 @@ func (t *Task) Validate() error {
 		return err
 	}
 
-	return validateTaskDescription(t.Description)
+	if err := validateTaskDescription(t.Description); err != nil {
+		return err
+	}
+
+	if err := t.Priority.Validate(); err != nil {
+		return fmt.Errorf("validate task priority: %w", err)
+	}
+
+	return nil
 }
 
 func validateTaskTitle(titleValue string) error {
@@ -169,6 +206,10 @@ func (t *Task) ApplyUpdate(patch UpdateTask) error {
 
 	if patch.Done.Set {
 		tmp.Done = *patch.Done.Value
+	}
+
+	if patch.Priority.Set {
+		tmp.Priority = *patch.Priority.Value
 	}
 
 	if err := tmp.Validate(); err != nil {

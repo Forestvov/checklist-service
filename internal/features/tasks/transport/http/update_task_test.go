@@ -23,6 +23,7 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 		"Buy groceries",
 		"Milk, bread and eggs",
 		true,
+		core_domain.TaskPriorityHigh,
 		createdAt,
 		updatedAt,
 	)
@@ -47,7 +48,7 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPatch,
 		"/api/v1/tasks/"+taskIDPath,
-		strings.NewReader(`{"description":"Milk, bread and eggs","done":true}`),
+		strings.NewReader(`{"description":"Milk, bread and eggs","done":true,"priority":"high"}`),
 	)
 	request.SetPathValue("id", taskIDPath)
 	request = requestWithTestLogger(request)
@@ -70,6 +71,11 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 	if !servicePatch.Done.Set || servicePatch.Done.Value == nil || !*servicePatch.Done.Value {
 		t.Errorf("unexpected done patch: %+v", servicePatch.Done)
 	}
+	if !servicePatch.Priority.Set ||
+		servicePatch.Priority.Value == nil ||
+		*servicePatch.Priority.Value != core_domain.TaskPriorityHigh {
+		t.Errorf("unexpected priority patch: %+v", servicePatch.Priority)
+	}
 
 	var response UpdateTaskResponse
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
@@ -79,6 +85,7 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 		response.Title != expectedTask.Title ||
 		response.Description != expectedTask.Description ||
 		response.Done != expectedTask.Done ||
+		response.Priority != expectedTask.Priority ||
 		!response.CreatedAt.Equal(expectedTask.CreatedAt) ||
 		!response.UpdatedAt.Equal(expectedTask.UpdatedAt) {
 		t.Errorf("expected response for task %+v, got %+v", expectedTask, response)
@@ -94,8 +101,11 @@ func TestTasksHTTPHandlerUpdateTaskInvalidRequest(t *testing.T) {
 		{name: "null title", body: `{"title":null}`},
 		{name: "null description", body: `{"description":null}`},
 		{name: "null done", body: `{"done":null}`},
+		{name: "null priority", body: `{"priority":null}`},
 		{name: "short title", body: `{"title":"ab"}`},
 		{name: "wrong done type", body: `{"done":"true"}`},
+		{name: "wrong priority type", body: `{"priority":1}`},
+		{name: "unsupported priority", body: `{"priority":"critical"}`},
 		{name: "unknown field", body: `{"completed":true}`},
 		{name: "malformed JSON", body: `{"done":`},
 	}

@@ -45,7 +45,10 @@ migrate-create:
 		exit 1; \
 	fi
 
-	@docker compose run --rm checklist-postgres-migrate \
+	@docker run --rm \
+		--user "$$(id -u):$$(id -g)" \
+		-v "$(PROJECT_ROOT)/migrations:/migrations" \
+		migrate/migrate:4 \
 		create \
 		-ext sql \
 		-dir /migrations \

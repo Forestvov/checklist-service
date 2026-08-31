@@ -22,6 +22,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			"Charlie task",
 			"",
 			false,
+			core_domain.DefaultTaskPriority,
 			baseTime.Add(time.Minute),
 			baseTime.Add(3*time.Minute),
 		),
@@ -30,6 +31,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			"Alpha task",
 			"",
 			false,
+			core_domain.TaskPriorityHigh,
 			baseTime.Add(2*time.Minute),
 			baseTime.Add(time.Minute),
 		),
@@ -38,6 +40,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			"Bravo task",
 			"",
 			false,
+			core_domain.TaskPriorityLow,
 			baseTime.Add(3*time.Minute),
 			baseTime.Add(2*time.Minute),
 		),
@@ -137,7 +140,7 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 	} {
 		created, err := repository.CreateTask(
 			ctx,
-			core_domain.NewTaskUninitialized(title, nil),
+			core_domain.NewTaskUninitialized(title, nil, nil),
 		)
 		if err != nil {
 			t.Fatalf("prepare task %q: %v", title, err)
@@ -273,7 +276,7 @@ func TestTasksRepositoryGetTasksSuccess(t *testing.T) {
 	createdTasks := make([]core_domain.Task, 0, len(titles))
 
 	for _, title := range titles {
-		input := core_domain.NewTaskUninitialized(title, nil)
+		input := core_domain.NewTaskUninitialized(title, nil, nil)
 
 		created, err := repository.CreateTask(ctx, input)
 		if err != nil {
@@ -366,7 +369,7 @@ func TestTasksRepositoryGetTasksPagination(t *testing.T) {
 	createdTasks := make([]core_domain.Task, 0, len(titles))
 
 	for _, title := range titles {
-		input := core_domain.NewTaskUninitialized(title, nil)
+		input := core_domain.NewTaskUninitialized(title, nil, nil)
 
 		created, err := repository.CreateTask(ctx, input)
 		if err != nil {

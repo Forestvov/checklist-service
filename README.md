@@ -8,7 +8,7 @@ REST API для управления задачами, написанный на
 
 ## Возможности
 
-- создание задачи с валидацией заголовка и описания;
+- создание задачи с валидацией заголовка, описания и приоритета;
 - получение задачи по идентификатору;
 - получение списка задач с пагинацией, фильтрацией по статусу и сортировкой;
 - частичное редактирование и изменение статуса задачи;
@@ -96,8 +96,11 @@ docker compose down
 ```bash
 curl -i -X POST http://localhost:5050/api/v1/tasks \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Buy groceries","description":"Milk, bread and vegetables"}'
+  -d '{"title":"Buy groceries","description":"Milk, bread and vegetables","priority":"high"}'
 ```
+
+Приоритет может принимать значения `low`, `medium` или `high`. Если поле
+`priority` не передано, используется значение `medium`.
 
 Получить список задач:
 
@@ -120,12 +123,12 @@ curl http://localhost:5050/api/v1/tasks/1
 ```bash
 curl -i -X PATCH http://localhost:5050/api/v1/tasks/1 \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Buy groceries today","done":true}'
+  -d '{"title":"Buy groceries today","done":true,"priority":"high"}'
 ```
 
 В PATCH-запросе можно передать одно или несколько полей: `title`, `description`
-и `done`. Пропущенные поля останутся без изменений. Чтобы повторно открыть
-выполненную задачу, передайте `{"done":false}`.
+`done` и `priority`. Пропущенные поля останутся без изменений. Чтобы повторно
+открыть выполненную задачу, передайте `{"done":false}`.
 
 Удалить задачу:
 
@@ -223,7 +226,7 @@ Go-проверками и сборкой Docker-образа.
 
 ## Планы развития
 
-- дедлайны и приоритеты;
+- дедлайны;
 - авторизация и принадлежность задач пользователям;
 - публикация Docker-образа;
 - метрики и distributed tracing.

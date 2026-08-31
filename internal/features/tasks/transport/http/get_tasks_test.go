@@ -33,6 +33,7 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			"Buy groceries",
 			"Milk and bread",
 			false,
+			core_domain.TaskPriorityHigh,
 			now,
 			now,
 		),
@@ -41,6 +42,7 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			"Write tests",
 			"Test GetTasks handler",
 			true,
+			core_domain.TaskPriorityLow,
 			now,
 			now,
 		),
@@ -134,12 +136,26 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			response.Data[0].ID,
 		)
 	}
+	if response.Data[0].Priority != expectedTasks[0].Priority {
+		t.Errorf(
+			"expected first task priority %q, got %q",
+			expectedTasks[0].Priority,
+			response.Data[0].Priority,
+		)
+	}
 
 	if response.Data[1].ID != expectedTasks[1].ID {
 		t.Errorf(
 			"expected second task ID %d, got %d",
 			expectedTasks[1].ID,
 			response.Data[1].ID,
+		)
+	}
+	if response.Data[1].Priority != expectedTasks[1].Priority {
+		t.Errorf(
+			"expected second task priority %q, got %q",
+			expectedTasks[1].Priority,
+			response.Data[1].Priority,
 		)
 	}
 

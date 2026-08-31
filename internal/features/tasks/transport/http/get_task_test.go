@@ -23,6 +23,7 @@ func TestTasksHTTPHandlerGetTaskSuccess(t *testing.T) {
 		"Buy groceries",
 		"Milk and bread",
 		false,
+		core_domain.DefaultTaskPriority,
 		now,
 		now,
 	)
@@ -105,6 +106,14 @@ func TestTasksHTTPHandlerGetTaskSuccess(t *testing.T) {
 			"expected done=%t, got %t",
 			expectedTask.Done,
 			response.Done,
+		)
+	}
+
+	if response.Priority != expectedTask.Priority {
+		t.Errorf(
+			"expected priority %q, got %q",
+			expectedTask.Priority,
+			response.Priority,
 		)
 	}
 }

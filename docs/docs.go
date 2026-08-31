@@ -95,7 +95,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Creates a new task with a required title and an optional description.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.\nThe description may be omitted and must not exceed 5000 Unicode characters when provided.",
+                "description": "Creates a task with a required title and optional description and priority.\nPriority may be low, medium, or high. The default is medium.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.\nThe description may be omitted and must not exceed 5000 Unicode characters when provided.",
                 "consumes": [
                     "application/json"
                 ],
@@ -284,6 +284,21 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority": {
+            "type": "string",
+            "enum": [
+                "low",
+                "medium",
+                "high",
+                "medium"
+            ],
+            "x-enum-varnames": [
+                "TaskPriorityLow",
+                "TaskPriorityMedium",
+                "TaskPriorityHigh",
+                "DefaultTaskPriority"
+            ]
+        },
         "github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -330,6 +345,19 @@ const docTemplate = `{
                     "maxLength": 5000,
                     "example": "Milk, bread, and vegetables"
                 },
+                "priority": {
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority"
+                        }
+                    ],
+                    "example": "medium"
+                },
                 "title": {
                     "description": "Title is required and must contain between 3 and 255 Unicode characters\nafter leading and trailing whitespace is ignored.",
                     "type": "string",
@@ -354,6 +382,18 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "priority": {
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority"
+                        }
+                    ]
+                },
                 "title": {
                     "type": "string"
                 },
@@ -376,6 +416,18 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "priority": {
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority"
+                        }
+                    ]
                 },
                 "title": {
                     "type": "string"
@@ -414,6 +466,18 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "priority": {
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority"
+                        }
+                    ]
+                },
                 "title": {
                     "type": "string"
                 },
@@ -433,6 +497,15 @@ const docTemplate = `{
                 "done": {
                     "type": "boolean",
                     "example": true
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ],
+                    "example": "medium"
                 },
                 "title": {
                     "type": "string",
@@ -456,6 +529,18 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "priority": {
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority"
+                        }
+                    ]
                 },
                 "title": {
                     "type": "string"

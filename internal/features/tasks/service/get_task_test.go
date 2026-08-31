@@ -17,6 +17,7 @@ func TestTaskServiceGetTaskSuccess(t *testing.T) {
 		"Buy groceries",
 		"Milk and bread",
 		false,
+		core_domain.DefaultTaskPriority,
 		now,
 		now,
 	)

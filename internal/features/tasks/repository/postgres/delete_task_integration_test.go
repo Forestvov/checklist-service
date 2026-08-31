@@ -18,6 +18,7 @@ func TestTasksRepositoryDeleteTaskSuccess(t *testing.T) {
 	input := core_domain.NewTaskUninitialized(
 		"Buy groceries",
 		&description,
+		nil,
 	)
 
 	created, err := repository.CreateTask(ctx, input)

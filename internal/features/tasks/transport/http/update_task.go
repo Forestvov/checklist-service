@@ -11,9 +11,10 @@ import (
 )
 
 type UpdateTaskRequest struct {
-	Title       core_http_types.Nullable[string] `json:"title" swaggertype:"string" minLength:"3" maxLength:"255" example:"Buy groceries"`
-	Description core_http_types.Nullable[string] `json:"description" swaggertype:"string" maxLength:"5000" example:"Milk, bread and eggs"`
-	Done        core_http_types.Nullable[bool]   `json:"done" swaggertype:"boolean" example:"true"`
+	Title       core_http_types.Nullable[string]                   `json:"title" swaggertype:"string" minLength:"3" maxLength:"255" example:"Buy groceries"`
+	Description core_http_types.Nullable[string]                   `json:"description" swaggertype:"string" maxLength:"5000" example:"Milk, bread and eggs"`
+	Done        core_http_types.Nullable[bool]                     `json:"done" swaggertype:"boolean" example:"true"`
+	Priority    core_http_types.Nullable[core_domain.TaskPriority] `json:"priority" swaggertype:"string" enums:"low,medium,high" example:"medium"`
 }
 
 func (r *UpdateTaskRequest) Validate() error {
@@ -82,5 +83,6 @@ func taskUpdateFromRequest(req UpdateTaskRequest) core_domain.UpdateTask {
 		req.Title.ToDomain(),
 		req.Description.ToDomain(),
 		req.Done.ToDomain(),
+		req.Priority.ToDomain(),
 	)
 }

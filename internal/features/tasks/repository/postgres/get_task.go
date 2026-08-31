@@ -18,7 +18,7 @@ func (r *TasksRepository) GetTask(
 	defer cancel()
 
 	sql := `
-		SELECT id, title, description, done, created_at, updated_at
+		SELECT id, title, description, done, priority, created_at, updated_at
 		FROM checklist.tasks
 		WHERE id=$1;
 	`
@@ -31,6 +31,7 @@ func (r *TasksRepository) GetTask(
 		&taskModel.Title,
 		&taskModel.Description,
 		&taskModel.Done,
+		&taskModel.Priority,
 		&taskModel.CreatedAt,
 		&taskModel.UpdatedAt,
 	)

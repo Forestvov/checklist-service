@@ -17,23 +17,24 @@ func TestTaskValidate(t *testing.T) {
 	}{
 		{
 			name: "valid task without description",
-			task: Task{Title: "Task"},
+			task: Task{Title: "Task", Priority: DefaultTaskPriority},
 		},
 		{
 			name: "valid maximum lengths",
 			task: Task{
 				Title:       strings.Repeat("я", 255),
 				Description: strings.Repeat("я", 5000),
+				Priority:    TaskPriorityHigh,
 			},
 		},
 		{
 			name:        "title is too short after trimming",
-			task:        Task{Title: "  ab  "},
+			task:        Task{Title: "  ab  ", Priority: DefaultTaskPriority},
 			expectError: true,
 		},
 		{
 			name:        "title is too long",
-			task:        Task{Title: strings.Repeat("я", 256)},
+			task:        Task{Title: strings.Repeat("я", 256), Priority: DefaultTaskPriority},
 			expectError: true,
 		},
 		{
@@ -41,6 +42,15 @@ func TestTaskValidate(t *testing.T) {
 			task: Task{
 				Title:       "Task",
 				Description: strings.Repeat("я", 5001),
+				Priority:    DefaultTaskPriority,
+			},
+			expectError: true,
+		},
+		{
+			name: "unsupported priority",
+			task: Task{
+				Title:    "Task",
+				Priority: TaskPriority("critical"),
 			},
 			expectError: true,
 		},
@@ -59,11 +69,14 @@ func TestTaskValidate(t *testing.T) {
 	}
 }
 
-func TestNewTaskUninitializedWithoutDescription(t *testing.T) {
-	task := NewTaskUninitialized("Task", nil)
+func TestNewTaskUninitializedDefaults(t *testing.T) {
+	task := NewTaskUninitialized("Task", nil, nil)
 
 	if task.Description != "" {
 		t.Fatalf("expected empty description, got %q", task.Description)
+	}
+	if task.Priority != DefaultTaskPriority {
+		t.Errorf("expected priority %q, got %q", DefaultTaskPriority, task.Priority)
 	}
 }
 
@@ -89,6 +102,12 @@ func TestUpdateTaskValidate(t *testing.T) {
 			name: "valid false done value",
 			update: UpdateTask{
 				Done: setNullable(false),
+			},
+		},
+		{
+			name: "valid priority",
+			update: UpdateTask{
+				Priority: setNullable(TaskPriorityHigh),
 			},
 		},
 		{
@@ -137,6 +156,20 @@ func TestUpdateTaskValidate(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			name: "priority is null",
+			update: UpdateTask{
+				Priority: nullNullable[TaskPriority](),
+			},
+			expectError: true,
+		},
+		{
+			name: "priority is unsupported",
+			update: UpdateTask{
+				Priority: setNullable(TaskPriority("critical")),
+			},
+			expectError: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -160,6 +193,7 @@ func TestTaskApplyUpdate(t *testing.T) {
 		"Original task",
 		"Original description",
 		false,
+		DefaultTaskPriority,
 		createdAt,
 		updatedAt,
 	)
@@ -168,6 +202,7 @@ func TestTaskApplyUpdate(t *testing.T) {
 		setNullable("Updated task"),
 		setNullable(""),
 		setNullable(true),
+		setNullable(TaskPriorityHigh),
 	)
 
 	if err := task.ApplyUpdate(patch); err != nil {
@@ -182,6 +217,9 @@ func TestTaskApplyUpdate(t *testing.T) {
 	}
 	if !task.Done {
 		t.Error("updated task must have done=true")
+	}
+	if task.Priority != TaskPriorityHigh {
+		t.Errorf("unexpected priority: got %q, want %q", task.Priority, TaskPriorityHigh)
 	}
 	if task.ID != 1 {
 		t.Errorf("unexpected ID: got %d, want 1", task.ID)
@@ -205,6 +243,7 @@ func TestTaskApplyPartialUpdate(t *testing.T) {
 		"Original task",
 		"Original description",
 		false,
+		DefaultTaskPriority,
 		time.Now().Add(-2*time.Hour),
 		updatedAt,
 	)
@@ -213,6 +252,7 @@ func TestTaskApplyPartialUpdate(t *testing.T) {
 		setNullable("Updated task"),
 		Nullable[string]{},
 		Nullable[bool]{},
+		Nullable[TaskPriority]{},
 	)
 
 	if err := task.ApplyUpdate(patch); err != nil {
@@ -232,6 +272,9 @@ func TestTaskApplyPartialUpdate(t *testing.T) {
 	if task.Done {
 		t.Error("done changed for omitted field")
 	}
+	if task.Priority != DefaultTaskPriority {
+		t.Errorf("priority changed for omitted field: got %q", task.Priority)
+	}
 	if !task.UpdatedAt.After(updatedAt) {
 		t.Errorf(
 			"updated_at was not refreshed: before %s, after %s",
@@ -247,6 +290,7 @@ func TestTaskApplyInvalidUpdateDoesNotMutateTask(t *testing.T) {
 		"Original task",
 		"Original description",
 		false,
+		DefaultTaskPriority,
 		time.Now().Add(-2*time.Hour),
 		time.Now().Add(-time.Hour),
 	)
@@ -256,6 +300,7 @@ func TestTaskApplyInvalidUpdateDoesNotMutateTask(t *testing.T) {
 		setNullable("ab"),
 		Nullable[string]{},
 		Nullable[bool]{},
+		Nullable[TaskPriority]{},
 	)
 
 	err := task.ApplyUpdate(patch)
