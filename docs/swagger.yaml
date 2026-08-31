@@ -224,6 +224,7 @@ paths:
         - created_at
         - updated_at
         - title
+        - priority
         in: query
         name: sort
         type: string

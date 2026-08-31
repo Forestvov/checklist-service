@@ -78,13 +78,17 @@ func TestTaskFilterValidate(t *testing.T) {
 			filter: NewTaskFilter(nil, nil, TaskSortTitle, SortOrderAsc),
 		},
 		{
+			name:   "priority descending",
+			filter: NewTaskFilter(nil, nil, TaskSortPriority, SortOrderDesc),
+		},
+		{
 			name:   "priority filter",
 			filter: NewTaskFilter(nil, &validPriority, TaskSortCreatedAt, SortOrderDesc),
 		},
 		{
 			name: "unsupported sort",
 			filter: TaskFilter{
-				Sort:  TaskSort("priority"),
+				Sort:  TaskSort("deadline"),
 				Order: SortOrderAsc,
 			},
 			expectError: true,

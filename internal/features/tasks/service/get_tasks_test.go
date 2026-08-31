@@ -138,7 +138,7 @@ func TestTaskServiceGetTasksInvalidFilter(t *testing.T) {
 		{
 			name: "unsupported sort",
 			filter: core_domain.TaskFilter{
-				Sort:  core_domain.TaskSort("priority"),
+				Sort:  core_domain.TaskSort("deadline"),
 				Order: core_domain.SortOrderAsc,
 			},
 		},

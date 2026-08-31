@@ -53,6 +53,12 @@ func (r *TasksRepository) GetTasks(
 		orderColumn = "updated_at"
 	case core_domain.TaskSortTitle:
 		orderColumn = "title"
+	case core_domain.TaskSortPriority:
+		orderColumn = `CASE priority
+			WHEN 'low' THEN 1
+			WHEN 'medium' THEN 2
+			WHEN 'high' THEN 3
+		END`
 	}
 
 	var orderDirection string

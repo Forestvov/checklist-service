@@ -13,6 +13,7 @@ const (
 	TaskSortCreatedAt TaskSort = "created_at"
 	TaskSortUpdatedAt TaskSort = "updated_at"
 	TaskSortTitle     TaskSort = "title"
+	TaskSortPriority  TaskSort = "priority"
 
 	SortOrderAsc  SortOrder = "asc"
 	SortOrderDesc SortOrder = "desc"
@@ -54,7 +55,7 @@ func NewTaskFilter(
 
 func (f TaskFilter) Validate() error {
 	switch f.Sort {
-	case TaskSortCreatedAt, TaskSortUpdatedAt, TaskSortTitle:
+	case TaskSortCreatedAt, TaskSortUpdatedAt, TaskSortTitle, TaskSortPriority:
 	default:
 		return fmt.Errorf(
 			"unsupported task sort %q: %w",

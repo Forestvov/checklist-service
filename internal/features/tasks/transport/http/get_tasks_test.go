@@ -431,6 +431,18 @@ func TestTasksHTTPHandlerGetTasksSorting(t *testing.T) {
 			wantOrder: core_domain.SortOrderDesc,
 		},
 		{
+			name:      "priority ascending",
+			query:     "?sort=priority&order=asc",
+			wantSort:  core_domain.TaskSortPriority,
+			wantOrder: core_domain.SortOrderAsc,
+		},
+		{
+			name:      "priority descending",
+			query:     "?sort=priority&order=desc",
+			wantSort:  core_domain.TaskSortPriority,
+			wantOrder: core_domain.SortOrderDesc,
+		},
+		{
 			name:      "default order",
 			query:     "?sort=title",
 			wantSort:  core_domain.TaskSortTitle,
@@ -485,7 +497,7 @@ func TestTasksHTTPHandlerGetTasksInvalidSorting(t *testing.T) {
 		name  string
 		query string
 	}{
-		{name: "unsupported sort", query: "?sort=priority"},
+		{name: "unsupported sort", query: "?sort=deadline"},
 		{name: "unsupported order", query: "?order=sideways"},
 	}
 

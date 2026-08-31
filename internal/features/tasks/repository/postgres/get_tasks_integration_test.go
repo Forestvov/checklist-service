@@ -102,6 +102,18 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			order:       core_domain.SortOrderDesc,
 			expectedIDs: []int64{createdTasks[0].ID, createdTasks[2].ID, createdTasks[1].ID},
 		},
+		{
+			name:        "priority ascending",
+			sort:        core_domain.TaskSortPriority,
+			order:       core_domain.SortOrderAsc,
+			expectedIDs: []int64{createdTasks[2].ID, createdTasks[0].ID, createdTasks[1].ID},
+		},
+		{
+			name:        "priority descending",
+			sort:        core_domain.TaskSortPriority,
+			order:       core_domain.SortOrderDesc,
+			expectedIDs: []int64{createdTasks[1].ID, createdTasks[0].ID, createdTasks[2].ID},
+		},
 	}
 
 	for _, tt := range tests {

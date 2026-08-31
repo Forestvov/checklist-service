@@ -64,7 +64,8 @@ const docTemplate = `{
                         "enum": [
                             "created_at",
                             "updated_at",
-                            "title"
+                            "title",
+                            "priority"
                         ],
                         "type": "string",
                         "default": "created_at",

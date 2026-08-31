@@ -109,8 +109,9 @@ curl 'http://localhost:5050/api/v1/tasks?page=1&per_page=20&done=false&priority=
 ```
 
 По умолчанию задачи сортируются по дате создания от новых к старым. Для
-сортировки доступны поля `created_at`, `updated_at` и `title`, а направление
-задаётся значением `asc` или `desc`.
+сортировки доступны поля `created_at`, `updated_at`, `title` и `priority`, а
+направление задаётся значением `asc` или `desc`. Приоритеты сортируются в
+порядке `low`, `medium`, `high`.
 
 Получить одну задачу:
 
@@ -152,8 +153,8 @@ curl -i -X DELETE http://localhost:5050/api/v1/tasks/1
 - `per_page` — размер страницы, по умолчанию `20`, максимум `100`;
 - `done` — необязательный статус задачи: `true` или `false`;
 - `priority` — необязательный приоритет: `low`, `medium` или `high`;
-- `sort` — поле сортировки: `created_at`, `updated_at` или `title`, по умолчанию
-  `created_at`;
+- `sort` — поле сортировки: `created_at`, `updated_at`, `title` или `priority`,
+  по умолчанию `created_at`;
 - `order` — направление сортировки: `asc` или `desc`, по умолчанию `desc`.
 
 ## Локальная разработка
