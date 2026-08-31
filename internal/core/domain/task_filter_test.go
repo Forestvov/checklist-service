@@ -9,10 +9,12 @@ import (
 
 func TestNewTaskFilter(t *testing.T) {
 	done := true
+	priority := TaskPriorityHigh
 
 	tests := []struct {
 		name      string
 		done      *bool
+		priority  *TaskPriority
 		sort      TaskSort
 		order     SortOrder
 		wantSort  TaskSort
@@ -26,6 +28,7 @@ func TestNewTaskFilter(t *testing.T) {
 		{
 			name:      "provided values",
 			done:      &done,
+			priority:  &priority,
 			sort:      TaskSortTitle,
 			order:     SortOrderAsc,
 			wantSort:  TaskSortTitle,
@@ -35,10 +38,13 @@ func TestNewTaskFilter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			filter := NewTaskFilter(tt.done, tt.sort, tt.order)
+			filter := NewTaskFilter(tt.done, tt.priority, tt.sort, tt.order)
 
 			if filter.Done != tt.done {
 				t.Errorf("expected done pointer %p, got %p", tt.done, filter.Done)
+			}
+			if filter.Priority != tt.priority {
+				t.Errorf("expected priority pointer %p, got %p", tt.priority, filter.Priority)
 			}
 			if filter.Sort != tt.wantSort {
 				t.Errorf("expected sort %q, got %q", tt.wantSort, filter.Sort)
@@ -51,6 +57,9 @@ func TestNewTaskFilter(t *testing.T) {
 }
 
 func TestTaskFilterValidate(t *testing.T) {
+	validPriority := TaskPriorityHigh
+	invalidPriority := TaskPriority("critical")
+
 	tests := []struct {
 		name        string
 		filter      TaskFilter
@@ -58,15 +67,19 @@ func TestTaskFilterValidate(t *testing.T) {
 	}{
 		{
 			name:   "created at ascending",
-			filter: NewTaskFilter(nil, TaskSortCreatedAt, SortOrderAsc),
+			filter: NewTaskFilter(nil, nil, TaskSortCreatedAt, SortOrderAsc),
 		},
 		{
 			name:   "updated at descending",
-			filter: NewTaskFilter(nil, TaskSortUpdatedAt, SortOrderDesc),
+			filter: NewTaskFilter(nil, nil, TaskSortUpdatedAt, SortOrderDesc),
 		},
 		{
 			name:   "title ascending",
-			filter: NewTaskFilter(nil, TaskSortTitle, SortOrderAsc),
+			filter: NewTaskFilter(nil, nil, TaskSortTitle, SortOrderAsc),
+		},
+		{
+			name:   "priority filter",
+			filter: NewTaskFilter(nil, &validPriority, TaskSortCreatedAt, SortOrderDesc),
 		},
 		{
 			name: "unsupported sort",
@@ -81,6 +94,15 @@ func TestTaskFilterValidate(t *testing.T) {
 			filter: TaskFilter{
 				Sort:  TaskSortCreatedAt,
 				Order: SortOrder("sideways"),
+			},
+			expectError: true,
+		},
+		{
+			name: "unsupported priority",
+			filter: TaskFilter{
+				Priority: &invalidPriority,
+				Sort:     TaskSortCreatedAt,
+				Order:    SortOrderDesc,
 			},
 			expectError: true,
 		},

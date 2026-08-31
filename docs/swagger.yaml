@@ -189,6 +189,7 @@ paths:
         Returns a filtered and sorted task list using page-based pagination.
         If page or per_page is omitted, the defaults are page=1 and per_page=20.
         If done is omitted, tasks of both statuses are returned.
+        If priority is omitted, tasks of all priorities are returned.
         By default, tasks are ordered by created_at in descending order.
         A page beyond the available range returns an empty data array with the requested pagination metadata.
       parameters:
@@ -209,6 +210,14 @@ paths:
         in: query
         name: done
         type: boolean
+      - description: Filter by priority
+        enum:
+        - low
+        - medium
+        - high
+        in: query
+        name: priority
+        type: string
       - default: created_at
         description: Sort field
         enum:

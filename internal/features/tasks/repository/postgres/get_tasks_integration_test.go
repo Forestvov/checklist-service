@@ -109,7 +109,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			result, err := repository.GetTasks(
 				ctx,
 				params,
-				core_domain.NewTaskFilter(nil, tt.sort, tt.order),
+				core_domain.NewTaskFilter(nil, nil, tt.sort, tt.order),
 			)
 			if err != nil {
 				t.Fatalf("get sorted tasks: %v", err)
@@ -187,7 +187,7 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 			result, err := repository.GetTasks(
 				ctx,
 				params,
-				core_domain.NewTaskFilter(&tt.done, "", ""),
+				core_domain.NewTaskFilter(&tt.done, nil, "", ""),
 			)
 			if err != nil {
 				t.Fatalf("get filtered tasks: %v", err)
@@ -219,7 +219,7 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		filteredParams,
-		core_domain.NewTaskFilter(&done, "", ""),
+		core_domain.NewTaskFilter(&done, nil, "", ""),
 	)
 	if err != nil {
 		t.Fatalf("get filtered task page: %v", err)
@@ -235,6 +235,139 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 	}
 }
 
+func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
+	repository := newTestRepository(t)
+	ctx := newTestContext(t)
+	baseTime := time.Date(2026, time.August, 31, 12, 0, 0, 0, time.UTC)
+
+	inputs := []core_domain.Task{
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Low priority task",
+			"",
+			false,
+			core_domain.TaskPriorityLow,
+			baseTime.Add(time.Minute),
+			baseTime.Add(time.Minute),
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Medium priority task",
+			"",
+			false,
+			core_domain.TaskPriorityMedium,
+			baseTime.Add(2*time.Minute),
+			baseTime.Add(2*time.Minute),
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Open high priority task",
+			"",
+			false,
+			core_domain.TaskPriorityHigh,
+			baseTime.Add(3*time.Minute),
+			baseTime.Add(3*time.Minute),
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Completed high priority task",
+			"",
+			true,
+			core_domain.TaskPriorityHigh,
+			baseTime.Add(4*time.Minute),
+			baseTime.Add(4*time.Minute),
+		),
+	}
+
+	createdTasks := make([]core_domain.Task, 0, len(inputs))
+	for _, input := range inputs {
+		created, err := repository.CreateTask(ctx, input)
+		if err != nil {
+			t.Fatalf("prepare task %q: %v", input.Title, err)
+		}
+		createdTasks = append(createdTasks, created)
+	}
+
+	params, err := core_pagination.NewParams(nil, nil)
+	if err != nil {
+		t.Fatalf("create default pagination params: %v", err)
+	}
+
+	low := core_domain.TaskPriorityLow
+	medium := core_domain.TaskPriorityMedium
+	high := core_domain.TaskPriorityHigh
+	done := true
+	notDone := false
+	tests := []struct {
+		name        string
+		done        *bool
+		priority    *core_domain.TaskPriority
+		expectedIDs []int64
+	}{
+		{
+			name:        "priority omitted",
+			expectedIDs: []int64{createdTasks[3].ID, createdTasks[2].ID, createdTasks[1].ID, createdTasks[0].ID},
+		},
+		{
+			name:        "low priority",
+			priority:    &low,
+			expectedIDs: []int64{createdTasks[0].ID},
+		},
+		{
+			name:        "medium priority",
+			priority:    &medium,
+			expectedIDs: []int64{createdTasks[1].ID},
+		},
+		{
+			name:        "high priority",
+			priority:    &high,
+			expectedIDs: []int64{createdTasks[3].ID, createdTasks[2].ID},
+		},
+		{
+			name:        "completed high priority",
+			done:        &done,
+			priority:    &high,
+			expectedIDs: []int64{createdTasks[3].ID},
+		},
+		{
+			name:        "uncompleted high priority",
+			done:        &notDone,
+			priority:    &high,
+			expectedIDs: []int64{createdTasks[2].ID},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := repository.GetTasks(
+				ctx,
+				params,
+				core_domain.NewTaskFilter(tt.done, tt.priority, "", ""),
+			)
+			if err != nil {
+				t.Fatalf("get filtered tasks: %v", err)
+			}
+			if result.Total != int64(len(tt.expectedIDs)) {
+				t.Errorf("unexpected total: got %d, want %d", result.Total, len(tt.expectedIDs))
+			}
+			if len(result.Items) != len(tt.expectedIDs) {
+				t.Fatalf("unexpected item count: got %d, want %d", len(result.Items), len(tt.expectedIDs))
+			}
+			for index, task := range result.Items {
+				if task.ID != tt.expectedIDs[index] {
+					t.Errorf("item %d: unexpected ID: got %d, want %d", index, task.ID, tt.expectedIDs[index])
+				}
+				if tt.priority != nil && task.Priority != *tt.priority {
+					t.Errorf("item %d: unexpected priority: got %q, want %q", index, task.Priority, *tt.priority)
+				}
+				if tt.done != nil && task.Done != *tt.done {
+					t.Errorf("item %d: unexpected done: got %t, want %t", index, task.Done, *tt.done)
+				}
+			}
+		})
+	}
+}
+
 func TestTasksRepositoryGetTasksEmpty(t *testing.T) {
 	repository := newTestRepository(t)
 	ctx := newTestContext(t)
@@ -247,7 +380,7 @@ func TestTasksRepositoryGetTasksEmpty(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		params,
-		core_domain.NewTaskFilter(nil, "", ""),
+		core_domain.NewTaskFilter(nil, nil, "", ""),
 	)
 	if err != nil {
 		t.Fatalf("get tasks from migrated database: %v", err)
@@ -294,7 +427,7 @@ func TestTasksRepositoryGetTasksSuccess(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		params,
-		core_domain.NewTaskFilter(nil, "", ""),
+		core_domain.NewTaskFilter(nil, nil, "", ""),
 	)
 	if err != nil {
 		t.Fatalf("get tasks: %v", err)
@@ -390,7 +523,7 @@ func TestTasksRepositoryGetTasksPagination(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		params,
-		core_domain.NewTaskFilter(nil, "", ""),
+		core_domain.NewTaskFilter(nil, nil, "", ""),
 	)
 	if err != nil {
 		t.Fatalf("get tasks: %v", err)

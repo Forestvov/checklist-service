@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
+	core_errors "github.com/Forestvov/checklist-service/internal/core/errors"
 	core_logger "github.com/Forestvov/checklist-service/internal/core/logger"
 	core_http_request "github.com/Forestvov/checklist-service/internal/core/transport/http/request"
 	core_http_response "github.com/Forestvov/checklist-service/internal/core/transport/http/response"
@@ -21,6 +22,7 @@ type GetTasksResponse struct {
 // @Description Returns a filtered and sorted task list using page-based pagination.
 // @Description If page or per_page is omitted, the defaults are page=1 and per_page=20.
 // @Description If done is omitted, tasks of both statuses are returned.
+// @Description If priority is omitted, tasks of all priorities are returned.
 // @Description By default, tasks are ordered by created_at in descending order.
 // @Description A page beyond the available range returns an empty data array with the requested pagination metadata.
 // @Tags tasks
@@ -28,6 +30,7 @@ type GetTasksResponse struct {
 // @Param page query int false "Page number" default(1) minimum(1)
 // @Param per_page query int false "Number of tasks per page" default(20) minimum(1) maximum(100)
 // @Param done query bool false "Filter by completion status"
+// @Param priority query string false "Filter by priority" Enums(low,medium,high)
 // @Param sort query string false "Sort field" Enums(created_at,updated_at,title) default(created_at)
 // @Param order query string false "Sort direction" Enums(asc,desc) default(desc)
 // @Success 200 {object} GetTasksResponse "Paginated task list"
@@ -48,7 +51,7 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	done, sortBy, orderBy, err := getTasksFilterQueryParams(r)
+	done, priority, sortBy, orderBy, err := getTasksFilterQueryParams(r)
 	if err != nil {
 		responseHandler.ErrorResponse(
 			err,
@@ -59,6 +62,7 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 
 	filter := core_domain.NewTaskFilter(
 		done,
+		priority,
 		sortBy,
 		orderBy,
 	)
@@ -83,20 +87,47 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 	responseHandler.JSONResponse(response, http.StatusOK)
 }
 
-func getTasksFilterQueryParams(r *http.Request) (*bool, core_domain.TaskSort, core_domain.SortOrder, error) {
+func getTasksFilterQueryParams(r *http.Request) (*bool, *core_domain.TaskPriority, core_domain.TaskSort, core_domain.SortOrder, error) {
 	const (
-		doneParam    = "done"
-		sortByParam  = "sort"
-		orderByParam = "order"
+		doneParam     = "done"
+		priorityParam = "priority"
+		sortByParam   = "sort"
+		orderByParam  = "order"
 	)
 
 	done, err := core_http_request.GetBoolQueryParam(r, doneParam)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to get done param: %w", err)
+		return nil, nil, "", "", fmt.Errorf("failed to get done param: %w", err)
 	}
 
-	sortBy := core_domain.TaskSort(r.URL.Query().Get(sortByParam))
-	order := core_domain.SortOrder(r.URL.Query().Get(orderByParam))
+	query := r.URL.Query()
+	priority, err := getTaskPriorityQueryParam(query, priorityParam)
+	if err != nil {
+		return nil, nil, "", "", fmt.Errorf("failed to get priority param: %w", err)
+	}
 
-	return done, sortBy, order, nil
+	sortBy := core_domain.TaskSort(query.Get(sortByParam))
+	order := core_domain.SortOrder(query.Get(orderByParam))
+
+	return done, priority, sortBy, order, nil
+}
+
+func getTaskPriorityQueryParam(
+	query map[string][]string,
+	key string,
+) (*core_domain.TaskPriority, error) {
+	values, exists := query[key]
+	if !exists {
+		return nil, nil
+	}
+	if len(values) != 1 || values[0] == "" {
+		return nil, fmt.Errorf(
+			"query parameter %q must contain exactly one non-empty value: %w",
+			key,
+			core_errors.ErrInvalidArgument,
+		)
+	}
+
+	priority := core_domain.TaskPriority(values[0])
+	return &priority, nil
 }

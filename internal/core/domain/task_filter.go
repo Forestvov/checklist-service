@@ -19,9 +19,10 @@ const (
 )
 
 type TaskFilter struct {
-	Done  *bool
-	Sort  TaskSort
-	Order SortOrder
+	Done     *bool
+	Priority *TaskPriority
+	Sort     TaskSort
+	Order    SortOrder
 }
 
 const (
@@ -31,6 +32,7 @@ const (
 
 func NewTaskFilter(
 	done *bool,
+	priority *TaskPriority,
 	sortBy TaskSort,
 	order SortOrder,
 ) TaskFilter {
@@ -43,9 +45,10 @@ func NewTaskFilter(
 	}
 
 	return TaskFilter{
-		Done:  done,
-		Sort:  sortBy,
-		Order: order,
+		Done:     done,
+		Priority: priority,
+		Sort:     sortBy,
+		Order:    order,
 	}
 }
 
@@ -68,6 +71,12 @@ func (f TaskFilter) Validate() error {
 			f.Order,
 			core_errors.ErrInvalidArgument,
 		)
+	}
+
+	if f.Priority != nil {
+		if err := f.Priority.Validate(); err != nil {
+			return fmt.Errorf("validate priority filter: %w", err)
+		}
 	}
 
 	return nil

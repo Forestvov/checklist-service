@@ -21,7 +21,8 @@ func (r *TasksRepository) GetTasks(
 	countSQL := `
 		SELECT COUNT(*)
 		FROM checklist.tasks
-		WHERE ($1::boolean IS NULL OR done = $1);
+		WHERE ($1::boolean IS NULL OR done = $1)
+			AND ($2::varchar IS NULL OR priority = $2);
 	`
 
 	var done any
@@ -29,11 +30,17 @@ func (r *TasksRepository) GetTasks(
 		done = *filter.Done
 	}
 
+	var priority any
+	if filter.Priority != nil {
+		priority = *filter.Priority
+	}
+
 	var total int64
 	if err := r.pool.QueryRow(
 		ctx,
 		countSQL,
 		done,
+		priority,
 	).Scan(&total); err != nil {
 		return emptyResult, fmt.Errorf("count tasks: %w", err)
 	}
@@ -62,14 +69,16 @@ func (r *TasksRepository) GetTasks(
 		SELECT id, title, description, done, priority, created_at, updated_at
 		FROM checklist.tasks
 		WHERE ($1::boolean IS NULL OR done = $1)
+			AND ($2::varchar IS NULL OR priority = $2)
 		ORDER BY %s, id %s
-		LIMIT $2 OFFSET $3;
+		LIMIT $3 OFFSET $4;
 	`, orderBy, orderDirection)
 
 	rows, err := r.pool.Query(
 		ctx,
 		selectSQL,
 		done,
+		priority,
 		paginationParams.Limit(),
 		paginationParams.Offset(),
 	)

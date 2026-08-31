@@ -111,6 +111,9 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 	if serviceFilter.Done != nil {
 		t.Errorf("expected empty done filter, got %+v", serviceFilter)
 	}
+	if serviceFilter.Priority != nil {
+		t.Errorf("expected empty priority filter, got %+v", serviceFilter)
+	}
 	if serviceFilter.Sort != core_domain.DefaultTaskSort ||
 		serviceFilter.Order != core_domain.DefaultSortOrder {
 		t.Errorf("expected default sorting, got %+v", serviceFilter)
@@ -343,6 +346,66 @@ func TestTasksHTTPHandlerGetTasksDoneFilter(t *testing.T) {
 	}
 }
 
+func TestTasksHTTPHandlerGetTasksPriorityFilter(t *testing.T) {
+	tests := []struct {
+		name      string
+		query     string
+		want      core_domain.TaskPriority
+		checkDone bool
+		wantDone  bool
+	}{
+		{name: "low priority", query: "?priority=low", want: core_domain.TaskPriorityLow},
+		{name: "medium priority", query: "?priority=medium", want: core_domain.TaskPriorityMedium},
+		{name: "high priority", query: "?priority=high", want: core_domain.TaskPriorityHigh},
+		{
+			name:      "priority and done",
+			query:     "?priority=high&done=false",
+			want:      core_domain.TaskPriorityHigh,
+			checkDone: true,
+			wantDone:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var serviceFilter core_domain.TaskFilter
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					params core_pagination.Params,
+					filter core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					serviceFilter = filter
+					return core_pagination.NewResult[core_domain.Task](nil, 0, params), nil
+				},
+			}
+			request := httptest.NewRequest(http.MethodGet, "/api/v1/tasks"+tt.query, nil)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			NewTasksHTTPHandler(service).GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+			}
+			if serviceFilter.Priority == nil {
+				t.Fatal("expected priority filter, got nil")
+			}
+			if *serviceFilter.Priority != tt.want {
+				t.Errorf("expected priority=%q, got %q", tt.want, *serviceFilter.Priority)
+			}
+			if tt.checkDone {
+				if serviceFilter.Done == nil {
+					t.Fatal("expected done filter, got nil")
+				}
+				if *serviceFilter.Done != tt.wantDone {
+					t.Errorf("expected done=%t, got %t", tt.wantDone, *serviceFilter.Done)
+				}
+			}
+		})
+	}
+}
+
 func TestTasksHTTPHandlerGetTasksSorting(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -508,6 +571,50 @@ func TestTasksHTTPHandlerGetTasksInvalidDoneFilter(t *testing.T) {
 					core_errors.ErrInvalidArgument,
 					response.Error,
 				)
+			}
+		})
+	}
+}
+
+func TestTasksHTTPHandlerGetTasksInvalidPriorityFilter(t *testing.T) {
+	tests := []struct {
+		name              string
+		query             string
+		wantServiceCalled bool
+	}{
+		{name: "empty value", query: "?priority="},
+		{name: "multiple values", query: "?priority=low&priority=high"},
+		{name: "unsupported value", query: "?priority=critical", wantServiceCalled: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serviceCalled := false
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					_ core_pagination.Params,
+					filter core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					serviceCalled = true
+					return core_pagination.Result[core_domain.Task]{}, filter.Validate()
+				},
+			}
+			request := httptest.NewRequest(http.MethodGet, "/api/v1/tasks"+tt.query, nil)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			NewTasksHTTPHandler(service).GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("expected status %d, got %d", http.StatusBadRequest, recorder.Code)
+			}
+			if serviceCalled != tt.wantServiceCalled {
+				t.Errorf("unexpected service call state: got %t, want %t", serviceCalled, tt.wantServiceCalled)
+			}
+			response := decodeErrorResponse(t, recorder)
+			if response.Error != core_errors.ErrInvalidArgument.Error() {
+				t.Errorf("expected error %q, got %q", core_errors.ErrInvalidArgument, response.Error)
 			}
 		})
 	}

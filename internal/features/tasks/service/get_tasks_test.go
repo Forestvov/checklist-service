@@ -47,8 +47,10 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 		paginationParams,
 	)
 	done := true
+	priority := core_domain.TaskPriorityHigh
 	filter := core_domain.NewTaskFilter(
 		&done,
+		&priority,
 		core_domain.TaskSortTitle,
 		core_domain.SortOrderAsc,
 	)
@@ -92,6 +94,10 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 	if repositoryFilter.Done == nil || !*repositoryFilter.Done {
 		t.Errorf("expected done=true filter, got %+v", repositoryFilter)
 	}
+	if repositoryFilter.Priority == nil ||
+		*repositoryFilter.Priority != core_domain.TaskPriorityHigh {
+		t.Errorf("expected priority=high filter, got %+v", repositoryFilter)
+	}
 	if repositoryFilter.Sort != core_domain.TaskSortTitle ||
 		repositoryFilter.Order != core_domain.SortOrderAsc {
 		t.Errorf("expected title asc sorting, got %+v", repositoryFilter)
@@ -123,6 +129,8 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 }
 
 func TestTaskServiceGetTasksInvalidFilter(t *testing.T) {
+	invalidPriority := core_domain.TaskPriority("critical")
+
 	tests := []struct {
 		name   string
 		filter core_domain.TaskFilter
@@ -139,6 +147,14 @@ func TestTaskServiceGetTasksInvalidFilter(t *testing.T) {
 			filter: core_domain.TaskFilter{
 				Sort:  core_domain.TaskSortCreatedAt,
 				Order: core_domain.SortOrder("sideways"),
+			},
+		},
+		{
+			name: "unsupported priority",
+			filter: core_domain.TaskFilter{
+				Priority: &invalidPriority,
+				Sort:     core_domain.TaskSortCreatedAt,
+				Order:    core_domain.SortOrderDesc,
 			},
 		},
 	}
@@ -186,6 +202,7 @@ func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 	done := false
 	filter := core_domain.NewTaskFilter(
 		&done,
+		nil,
 		"",
 		"",
 	)
