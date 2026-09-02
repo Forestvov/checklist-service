@@ -82,6 +82,10 @@ func TestTaskFilterValidate(t *testing.T) {
 			filter: NewTaskFilter(nil, nil, TaskSortPriority, SortOrderDesc),
 		},
 		{
+			name:   "due at ascending",
+			filter: NewTaskFilter(nil, nil, TaskSortDueAt, SortOrderAsc),
+		},
+		{
 			name:   "priority filter",
 			filter: NewTaskFilter(nil, &validPriority, TaskSortCreatedAt, SortOrderDesc),
 		},

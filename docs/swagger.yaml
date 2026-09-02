@@ -245,6 +245,7 @@ paths:
         - updated_at
         - title
         - priority
+        - due_at
         in: query
         name: sort
         type: string

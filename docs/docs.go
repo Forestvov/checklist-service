@@ -65,7 +65,8 @@ const docTemplate = `{
                             "created_at",
                             "updated_at",
                             "title",
-                            "priority"
+                            "priority",
+                            "due_at"
                         ],
                         "type": "string",
                         "default": "created_at",

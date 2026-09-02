@@ -59,6 +59,8 @@ func (r *TasksRepository) GetTasks(
 			WHEN 'medium' THEN 2
 			WHEN 'high' THEN 3
 		END`
+	case core_domain.TaskSortDueAt:
+		orderColumn = "due_at"
 	}
 
 	var orderDirection string
@@ -70,6 +72,9 @@ func (r *TasksRepository) GetTasks(
 	}
 
 	orderBy := orderColumn + " " + orderDirection
+	if filter.Sort == core_domain.TaskSortDueAt {
+		orderBy += " NULLS LAST"
+	}
 
 	selectSQL := fmt.Sprintf(`
 		SELECT id, title, description, done, priority, created_at, updated_at, due_at

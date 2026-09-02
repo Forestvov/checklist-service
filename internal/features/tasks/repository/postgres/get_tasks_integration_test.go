@@ -15,6 +15,8 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 	repository := newTestRepository(t)
 	ctx := newTestContext(t)
 	baseTime := time.Date(2026, time.August, 30, 12, 0, 0, 0, time.UTC)
+	earlyDueAt := baseTime.Add(24 * time.Hour)
+	lateDueAt := baseTime.Add(48 * time.Hour)
 
 	inputs := []core_domain.Task{
 		core_domain.NewTask(
@@ -25,7 +27,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			core_domain.DefaultTaskPriority,
 			baseTime.Add(time.Minute),
 			baseTime.Add(3*time.Minute),
-			nil,
+			&lateDueAt,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -45,7 +47,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			core_domain.TaskPriorityLow,
 			baseTime.Add(3*time.Minute),
 			baseTime.Add(2*time.Minute),
-			nil,
+			&earlyDueAt,
 		),
 	}
 
@@ -116,6 +118,18 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			sort:        core_domain.TaskSortPriority,
 			order:       core_domain.SortOrderDesc,
 			expectedIDs: []int64{createdTasks[1].ID, createdTasks[0].ID, createdTasks[2].ID},
+		},
+		{
+			name:        "due at ascending with nulls last",
+			sort:        core_domain.TaskSortDueAt,
+			order:       core_domain.SortOrderAsc,
+			expectedIDs: []int64{createdTasks[2].ID, createdTasks[0].ID, createdTasks[1].ID},
+		},
+		{
+			name:        "due at descending with nulls last",
+			sort:        core_domain.TaskSortDueAt,
+			order:       core_domain.SortOrderDesc,
+			expectedIDs: []int64{createdTasks[0].ID, createdTasks[2].ID, createdTasks[1].ID},
 		},
 	}
 

@@ -453,6 +453,18 @@ func TestTasksHTTPHandlerGetTasksSorting(t *testing.T) {
 			wantOrder: core_domain.SortOrderDesc,
 		},
 		{
+			name:      "due at ascending",
+			query:     "?sort=due_at&order=asc",
+			wantSort:  core_domain.TaskSortDueAt,
+			wantOrder: core_domain.SortOrderAsc,
+		},
+		{
+			name:      "due at descending",
+			query:     "?sort=due_at&order=desc",
+			wantSort:  core_domain.TaskSortDueAt,
+			wantOrder: core_domain.SortOrderDesc,
+		},
+		{
 			name:      "default order",
 			query:     "?sort=title",
 			wantSort:  core_domain.TaskSortTitle,

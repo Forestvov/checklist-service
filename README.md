@@ -106,13 +106,14 @@ curl -i -X POST http://localhost:5050/api/v1/tasks \
 Получить список задач:
 
 ```bash
-curl 'http://localhost:5050/api/v1/tasks?page=1&per_page=20&done=false&priority=high&sort=updated_at&order=desc'
+curl 'http://localhost:5050/api/v1/tasks?page=1&per_page=20&done=false&priority=high&sort=due_at&order=asc'
 ```
 
 По умолчанию задачи сортируются по дате создания от новых к старым. Для
-сортировки доступны поля `created_at`, `updated_at`, `title` и `priority`, а
-направление задаётся значением `asc` или `desc`. Приоритеты сортируются в
-порядке `low`, `medium`, `high`.
+сортировки доступны поля `created_at`, `updated_at`, `title`, `priority` и
+`due_at`, а направление задаётся значением `asc` или `desc`. Приоритеты
+сортируются в порядке `low`, `medium`, `high`. При сортировке по дедлайну задачи
+без дедлайна всегда располагаются в конце списка.
 
 Получить одну задачу:
 
@@ -155,8 +156,8 @@ curl -i -X DELETE http://localhost:5050/api/v1/tasks/1
 - `per_page` — размер страницы, по умолчанию `20`, максимум `100`;
 - `done` — необязательный статус задачи: `true` или `false`;
 - `priority` — необязательный приоритет: `low`, `medium` или `high`;
-- `sort` — поле сортировки: `created_at`, `updated_at`, `title` или `priority`,
-  по умолчанию `created_at`;
+- `sort` — поле сортировки: `created_at`, `updated_at`, `title`, `priority` или
+  `due_at`, по умолчанию `created_at`;
 - `order` — направление сортировки: `asc` или `desc`, по умолчанию `desc`.
 
 ## Локальная разработка

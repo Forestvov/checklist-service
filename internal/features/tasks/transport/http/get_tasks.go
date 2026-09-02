@@ -31,7 +31,7 @@ type GetTasksResponse struct {
 // @Param per_page query int false "Number of tasks per page" default(20) minimum(1) maximum(100)
 // @Param done query bool false "Filter by completion status"
 // @Param priority query string false "Filter by priority" Enums(low,medium,high)
-// @Param sort query string false "Sort field" Enums(created_at,updated_at,title,priority) default(created_at)
+// @Param sort query string false "Sort field" Enums(created_at,updated_at,title,priority,due_at) default(created_at)
 // @Param order query string false "Sort direction" Enums(asc,desc) default(desc)
 // @Success 200 {object} GetTasksResponse "Paginated task list"
 // @Failure 400 {object} core_http_response.ErrorResponse "Invalid pagination or filter parameters"
