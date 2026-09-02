@@ -17,6 +17,7 @@ import (
 
 func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 	now := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
+	dueAt := time.Date(2027, time.January, 10, 12, 0, 0, 0, time.UTC)
 
 	var serviceArgument core_domain.Task
 	service := tasksServiceStub{
@@ -26,7 +27,7 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 		) (core_domain.Task, error) {
 			serviceArgument = task
 
-			return core_domain.NewTask(
+			created := core_domain.NewTask(
 				defaultTaskID,
 				task.Title,
 				task.Description,
@@ -34,7 +35,9 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 				task.Priority,
 				now,
 				now,
-			), nil
+				task.DueAt,
+			)
+			return created, nil
 		},
 	}
 
@@ -46,7 +49,8 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 		strings.NewReader(`{
 			"title": "Buy groceries",
 			"description": "Milk and bread",
-			"priority": "high"
+			"priority": "high",
+			"due_at": "2027-01-10T12:00:00Z"
 		}`),
 	)
 	request = requestWithTestLogger(request)
@@ -94,6 +98,9 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 			serviceArgument.Priority,
 		)
 	}
+	if serviceArgument.DueAt == nil || !serviceArgument.DueAt.Equal(dueAt) {
+		t.Errorf("expected due_at %v, got %v", dueAt, serviceArgument.DueAt)
+	}
 
 	var response CreateTaskResponse
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
@@ -118,6 +125,9 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 			core_domain.TaskPriorityHigh,
 			response.Priority,
 		)
+	}
+	if response.DueAt == nil || !response.DueAt.Equal(dueAt) {
+		t.Errorf("expected response due_at %v, got %v", dueAt, response.DueAt)
 	}
 }
 
@@ -152,6 +162,9 @@ func TestTasksHTTPHandlerCreateTaskDefaultPriority(t *testing.T) {
 			serviceArgument.Priority,
 		)
 	}
+	if serviceArgument.DueAt != nil {
+		t.Errorf("expected no default deadline, got %v", serviceArgument.DueAt)
+	}
 }
 
 func TestTasksHTTPHandlerCreateTaskInvalidRequest(t *testing.T) {
@@ -163,6 +176,7 @@ func TestTasksHTTPHandlerCreateTaskInvalidRequest(t *testing.T) {
 		{name: "malformed JSON", body: `{"title":`},
 		{name: "wrong priority type", body: `{"title":"Task","priority":1}`},
 		{name: "unsupported priority", body: `{"title":"Task","priority":"critical"}`},
+		{name: "invalid due_at", body: `{"title":"Task","due_at":"tomorrow"}`},
 		{name: "unknown field", body: `{"title":"Task","unknown":true}`},
 		{name: "multiple JSON values", body: `{"title":"Task"} {"title":"Other"}`},
 		{name: "title too short after trimming", body: `{"title":"  a  "}`},

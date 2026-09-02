@@ -107,7 +107,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Creates a task with a required title and optional description and priority.\nPriority may be low, medium, or high. The default is medium.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.\nThe description may be omitted and must not exceed 5000 Unicode characters when provided.",
+                "description": "Creates a task with a required title and optional description, priority, and deadline.\nPriority may be low, medium, or high. The default is medium.\nDueAt must use RFC3339 format when provided.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.\nThe description may be omitted and must not exceed 5000 Unicode characters when provided.",
                 "consumes": [
                     "application/json"
                 ],
@@ -237,7 +237,7 @@ const docTemplate = `{
                 }
             },
             "patch": {
-                "description": "Partially updates the task with the specified integer identifier.\nSend at least one of title, description, or done. Omitted fields remain unchanged; null values are not allowed.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored. The description must not exceed 5000 Unicode characters.",
+                "description": "Partially updates the task with the specified integer identifier.\nSend at least one of title, description, done, priority, or due_at. Omitted fields remain unchanged.\nNull is allowed only for due_at and removes the current deadline.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored. The description must not exceed 5000 Unicode characters.",
                 "consumes": [
                     "application/json"
                 ],
@@ -357,6 +357,11 @@ const docTemplate = `{
                     "maxLength": 5000,
                     "example": "Milk, bread, and vegetables"
                 },
+                "due_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-09-15T12:00:00Z"
+                },
                 "priority": {
                     "enum": [
                         "low",
@@ -390,6 +395,10 @@ const docTemplate = `{
                 },
                 "done": {
                     "type": "boolean"
+                },
+                "due_at": {
+                    "type": "string",
+                    "format": "date-time"
                 },
                 "id": {
                     "type": "integer"
@@ -425,6 +434,10 @@ const docTemplate = `{
                 },
                 "done": {
                     "type": "boolean"
+                },
+                "due_at": {
+                    "type": "string",
+                    "format": "date-time"
                 },
                 "id": {
                     "type": "integer"
@@ -475,6 +488,10 @@ const docTemplate = `{
                 "done": {
                     "type": "boolean"
                 },
+                "due_at": {
+                    "type": "string",
+                    "format": "date-time"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -510,6 +527,11 @@ const docTemplate = `{
                     "type": "boolean",
                     "example": true
                 },
+                "due_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-09-15T12:00:00Z"
+                },
                 "priority": {
                     "type": "string",
                     "enum": [
@@ -538,6 +560,10 @@ const docTemplate = `{
                 },
                 "done": {
                     "type": "boolean"
+                },
+                "due_at": {
+                    "type": "string",
+                    "format": "date-time"
                 },
                 "id": {
                     "type": "integer"

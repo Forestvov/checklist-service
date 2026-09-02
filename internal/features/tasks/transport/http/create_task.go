@@ -2,6 +2,7 @@ package tasks_transport_http
 
 import (
 	"net/http"
+	"time"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_logger "github.com/Forestvov/checklist-service/internal/core/logger"
@@ -16,6 +17,7 @@ type CreateTaskRequest struct {
 	// Description is optional and may contain up to 5000 Unicode characters.
 	Description *string                   `json:"description" validate:"omitempty,max=5000" maxLength:"5000" example:"Milk, bread, and vegetables"`
 	Priority    *core_domain.TaskPriority `json:"priority" enums:"low,medium,high" example:"medium"`
+	DueAt       *time.Time                `json:"due_at" format:"date-time" example:"2026-09-15T12:00:00Z"`
 }
 
 type CreateTaskResponse TaskDTOResponse
@@ -25,6 +27,7 @@ func (request CreateTaskRequest) Validate() error {
 		request.Title,
 		request.Description,
 		request.Priority,
+		request.DueAt,
 	)
 
 	return task.Validate()
@@ -33,8 +36,9 @@ func (request CreateTaskRequest) Validate() error {
 // CreateTask creates a new task.
 //
 // @Summary Create a task
-// @Description Creates a task with a required title and optional description and priority.
+// @Description Creates a task with a required title and optional description, priority, and deadline.
 // @Description Priority may be low, medium, or high. The default is medium.
+// @Description DueAt must use RFC3339 format when provided.
 // @Description The title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.
 // @Description The description may be omitted and must not exceed 5000 Unicode characters when provided.
 // @Tags tasks
@@ -66,6 +70,7 @@ func (h *TasksHTTPHandler) CreateTask(
 		request.Title,
 		request.Description,
 		request.Priority,
+		request.DueAt,
 	)
 
 	taskDomain, err := h.tasksService.CreateTask(ctx, taskDomain)

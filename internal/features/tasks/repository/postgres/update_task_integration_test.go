@@ -17,7 +17,7 @@ func TestTasksRepositoryUpdateTaskSuccess(t *testing.T) {
 
 	created, err := repository.CreateTask(
 		ctx,
-		core_domain.NewTaskUninitialized("Original task", nil, nil),
+		core_domain.NewTaskUninitialized("Original task", nil, nil, nil),
 	)
 	if err != nil {
 		t.Fatalf("prepare task: %v", err)
@@ -28,6 +28,8 @@ func TestTasksRepositoryUpdateTaskSuccess(t *testing.T) {
 	updated.Description = "Updated description"
 	updated.Done = true
 	updated.Priority = core_domain.TaskPriorityHigh
+	dueAt := created.CreatedAt.Add(24 * time.Hour)
+	updated.DueAt = &dueAt
 	updated.UpdatedAt = created.UpdatedAt.Add(time.Hour)
 
 	actual, err := repository.UpdateTask(ctx, created.ID, updated)
@@ -43,6 +45,22 @@ func TestTasksRepositoryUpdateTaskSuccess(t *testing.T) {
 	}
 
 	assertTasksEqual(t, stored, updated)
+
+	cleared := stored
+	cleared.DueAt = nil
+	cleared.UpdatedAt = stored.UpdatedAt.Add(time.Hour)
+
+	actual, err = repository.UpdateTask(ctx, created.ID, cleared)
+	if err != nil {
+		t.Fatalf("clear task deadline: %v", err)
+	}
+	assertTasksEqual(t, actual, cleared)
+
+	stored, err = repository.GetTask(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("get task with cleared deadline: %v", err)
+	}
+	assertTasksEqual(t, stored, cleared)
 }
 
 func TestTasksRepositoryUpdateTaskNotFound(t *testing.T) {
@@ -76,7 +94,7 @@ func TestTasksRepositoryUpdateTaskRejectsInvalidTask(t *testing.T) {
 
 	created, err := repository.CreateTask(
 		ctx,
-		core_domain.NewTaskUninitialized("Original task", nil, nil),
+		core_domain.NewTaskUninitialized("Original task", nil, nil, nil),
 	)
 	if err != nil {
 		t.Fatalf("prepare task: %v", err)
@@ -123,6 +141,11 @@ func assertTasksEqual(t *testing.T, actual, expected core_domain.Task) {
 	}
 	if actual.Priority != expected.Priority {
 		t.Errorf("unexpected priority: got %q, want %q", actual.Priority, expected.Priority)
+	}
+	if actual.DueAt == nil && expected.DueAt != nil ||
+		actual.DueAt != nil && expected.DueAt == nil ||
+		actual.DueAt != nil && !actual.DueAt.Equal(*expected.DueAt) {
+		t.Errorf("unexpected due_at: got %v, want %v", actual.DueAt, expected.DueAt)
 	}
 	if !actual.CreatedAt.Equal(expected.CreatedAt) {
 		t.Errorf(

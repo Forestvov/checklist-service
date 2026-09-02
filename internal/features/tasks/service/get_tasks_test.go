@@ -29,6 +29,7 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 			core_domain.TaskPriorityHigh,
 			now,
 			now,
+			nil,
 		),
 		core_domain.NewTask(
 			9,
@@ -38,6 +39,7 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 			core_domain.TaskPriorityLow,
 			now,
 			now,
+			nil,
 		),
 	}
 

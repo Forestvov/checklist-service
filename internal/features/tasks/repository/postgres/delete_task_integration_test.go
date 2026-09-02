@@ -19,6 +19,7 @@ func TestTasksRepositoryDeleteTaskSuccess(t *testing.T) {
 		"Buy groceries",
 		&description,
 		nil,
+		nil,
 	)
 
 	created, err := repository.CreateTask(ctx, input)

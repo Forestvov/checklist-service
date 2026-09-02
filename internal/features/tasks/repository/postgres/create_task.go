@@ -15,9 +15,9 @@ func (r *TasksRepository) CreateTask(
 	defer cancel()
 
 	sql := `
-		INSERT INTO checklist.tasks (title, description, done, priority, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, title, description, done, priority, created_at, updated_at;
+		INSERT INTO checklist.tasks (title, description, done, priority, created_at, updated_at, due_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, title, description, done, priority, created_at, updated_at, due_at;
 	`
 
 	row := r.pool.QueryRow(
@@ -29,6 +29,7 @@ func (r *TasksRepository) CreateTask(
 		task.Priority,
 		task.CreatedAt,
 		task.UpdatedAt,
+		task.DueAt,
 	)
 
 	var taskModel TaskModel
@@ -40,6 +41,7 @@ func (r *TasksRepository) CreateTask(
 		&taskModel.Priority,
 		&taskModel.CreatedAt,
 		&taskModel.UpdatedAt,
+		&taskModel.DueAt,
 	)
 	if err != nil {
 		return core_domain.Task{}, fmt.Errorf("scan created task: %w", err)
@@ -53,6 +55,7 @@ func (r *TasksRepository) CreateTask(
 		taskModel.Priority,
 		taskModel.CreatedAt,
 		taskModel.UpdatedAt,
+		taskModel.DueAt,
 	)
 
 	return taskDomain, nil

@@ -42,6 +42,10 @@ definitions:
         example: Milk, bread, and vegetables
         maxLength: 5000
         type: string
+      due_at:
+        example: "2026-09-15T12:00:00Z"
+        format: date-time
+        type: string
       priority:
         allOf:
         - $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_domain.TaskPriority'
@@ -69,6 +73,9 @@ definitions:
         type: string
       done:
         type: boolean
+      due_at:
+        format: date-time
+        type: string
       id:
         type: integer
       priority:
@@ -91,6 +98,9 @@ definitions:
         type: string
       done:
         type: boolean
+      due_at:
+        format: date-time
+        type: string
       id:
         type: integer
       priority:
@@ -122,6 +132,9 @@ definitions:
         type: string
       done:
         type: boolean
+      due_at:
+        format: date-time
+        type: string
       id:
         type: integer
       priority:
@@ -145,6 +158,10 @@ definitions:
       done:
         example: true
         type: boolean
+      due_at:
+        example: "2026-09-15T12:00:00Z"
+        format: date-time
+        type: string
       priority:
         enum:
         - low
@@ -166,6 +183,9 @@ definitions:
         type: string
       done:
         type: boolean
+      due_at:
+        format: date-time
+        type: string
       id:
         type: integer
       priority:
@@ -258,8 +278,9 @@ paths:
       consumes:
       - application/json
       description: |-
-        Creates a task with a required title and optional description and priority.
+        Creates a task with a required title and optional description, priority, and deadline.
         Priority may be low, medium, or high. The default is medium.
+        DueAt must use RFC3339 format when provided.
         The title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored.
         The description may be omitted and must not exceed 5000 Unicode characters when provided.
       parameters:
@@ -353,7 +374,8 @@ paths:
       - application/json
       description: |-
         Partially updates the task with the specified integer identifier.
-        Send at least one of title, description, or done. Omitted fields remain unchanged; null values are not allowed.
+        Send at least one of title, description, done, priority, or due_at. Omitted fields remain unchanged.
+        Null is allowed only for due_at and removes the current deadline.
         The title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored. The description must not exceed 5000 Unicode characters.
       parameters:
       - description: Task identifier

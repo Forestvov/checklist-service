@@ -14,6 +14,7 @@ type TaskDTOResponse struct {
 	Priority    core_domain.TaskPriority `json:"priority" enums:"low,medium,high"`
 	CreatedAt   time.Time                `json:"created_at"`
 	UpdatedAt   time.Time                `json:"updated_at"`
+	DueAt       *time.Time               `json:"due_at" format:"date-time"`
 }
 
 func taskDTOFromDomain(task core_domain.Task) TaskDTOResponse {
@@ -25,6 +26,7 @@ func taskDTOFromDomain(task core_domain.Task) TaskDTOResponse {
 		Priority:    task.Priority,
 		CreatedAt:   task.CreatedAt,
 		UpdatedAt:   task.UpdatedAt,
+		DueAt:       task.DueAt,
 	}
 }
 

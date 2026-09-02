@@ -18,7 +18,7 @@ func (r *TasksRepository) GetTask(
 	defer cancel()
 
 	sql := `
-		SELECT id, title, description, done, priority, created_at, updated_at
+		SELECT id, title, description, done, priority, created_at, updated_at, due_at
 		FROM checklist.tasks
 		WHERE id=$1;
 	`
@@ -34,6 +34,7 @@ func (r *TasksRepository) GetTask(
 		&taskModel.Priority,
 		&taskModel.CreatedAt,
 		&taskModel.UpdatedAt,
+		&taskModel.DueAt,
 	)
 	if err != nil {
 		if errors.Is(err, core_postgres_pool.ErrNoRows) {

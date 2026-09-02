@@ -8,7 +8,7 @@ REST API для управления задачами, написанный на
 
 ## Возможности
 
-- создание задачи с валидацией заголовка, описания и приоритета;
+- создание задачи с валидацией заголовка, описания, приоритета и дедлайна;
 - получение задачи по идентификатору;
 - получение списка задач с пагинацией, фильтрацией по статусу и сортировкой;
 - частичное редактирование и изменение статуса задачи;
@@ -96,11 +96,12 @@ docker compose down
 ```bash
 curl -i -X POST http://localhost:5050/api/v1/tasks \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Buy groceries","description":"Milk, bread and vegetables","priority":"high"}'
+  -d '{"title":"Buy groceries","description":"Milk, bread and vegetables","priority":"high","due_at":"2026-09-15T12:00:00Z"}'
 ```
 
 Приоритет может принимать значения `low`, `medium` или `high`. Если поле
 `priority` не передано, используется значение `medium`.
+Дедлайн `due_at` является необязательным и передаётся в формате RFC3339.
 
 Получить список задач:
 
@@ -124,12 +125,13 @@ curl http://localhost:5050/api/v1/tasks/1
 ```bash
 curl -i -X PATCH http://localhost:5050/api/v1/tasks/1 \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Buy groceries today","done":true,"priority":"high"}'
+  -d '{"title":"Buy groceries today","done":true,"priority":"high","due_at":"2026-09-15T12:00:00Z"}'
 ```
 
-В PATCH-запросе можно передать одно или несколько полей: `title`, `description`
-`done` и `priority`. Пропущенные поля останутся без изменений. Чтобы повторно
-открыть выполненную задачу, передайте `{"done":false}`.
+В PATCH-запросе можно передать одно или несколько полей: `title`, `description`,
+`done`, `priority` и `due_at`. Пропущенные поля останутся без изменений. Чтобы
+повторно открыть выполненную задачу, передайте `{"done":false}`. Чтобы удалить
+дедлайн, передайте `{"due_at":null}`.
 
 Удалить задачу:
 
@@ -228,7 +230,7 @@ Go-проверками и сборкой Docker-образа.
 
 ## Планы развития
 
-- дедлайны;
+- фильтрация просроченных задач;
 - авторизация и принадлежность задач пользователям;
 - публикация Docker-образа;
 - метрики и distributed tracing.

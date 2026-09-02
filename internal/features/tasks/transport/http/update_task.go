@@ -2,6 +2,7 @@ package tasks_transport_http
 
 import (
 	"net/http"
+	"time"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_logger "github.com/Forestvov/checklist-service/internal/core/logger"
@@ -15,6 +16,7 @@ type UpdateTaskRequest struct {
 	Description core_http_types.Nullable[string]                   `json:"description" swaggertype:"string" maxLength:"5000" example:"Milk, bread and eggs"`
 	Done        core_http_types.Nullable[bool]                     `json:"done" swaggertype:"boolean" example:"true"`
 	Priority    core_http_types.Nullable[core_domain.TaskPriority] `json:"priority" swaggertype:"string" enums:"low,medium,high" example:"medium"`
+	DueAt       core_http_types.Nullable[time.Time]                `json:"due_at" swaggertype:"string" format:"date-time" example:"2026-09-15T12:00:00Z"`
 }
 
 func (r *UpdateTaskRequest) Validate() error {
@@ -27,7 +29,8 @@ type UpdateTaskResponse TaskDTOResponse
 //
 // @Summary Update a task
 // @Description Partially updates the task with the specified integer identifier.
-// @Description Send at least one of title, description, or done. Omitted fields remain unchanged; null values are not allowed.
+// @Description Send at least one of title, description, done, priority, or due_at. Omitted fields remain unchanged.
+// @Description Null is allowed only for due_at and removes the current deadline.
 // @Description The title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored. The description must not exceed 5000 Unicode characters.
 // @Tags tasks
 // @Accept json
@@ -84,5 +87,6 @@ func taskUpdateFromRequest(req UpdateTaskRequest) core_domain.UpdateTask {
 		req.Description.ToDomain(),
 		req.Done.ToDomain(),
 		req.Priority.ToDomain(),
+		req.DueAt.ToDomain(),
 	)
 }

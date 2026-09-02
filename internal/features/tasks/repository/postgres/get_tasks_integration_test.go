@@ -25,6 +25,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			core_domain.DefaultTaskPriority,
 			baseTime.Add(time.Minute),
 			baseTime.Add(3*time.Minute),
+			nil,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -34,6 +35,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			core_domain.TaskPriorityHigh,
 			baseTime.Add(2*time.Minute),
 			baseTime.Add(time.Minute),
+			nil,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -43,6 +45,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			core_domain.TaskPriorityLow,
 			baseTime.Add(3*time.Minute),
 			baseTime.Add(2*time.Minute),
+			nil,
 		),
 	}
 
@@ -152,7 +155,7 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 	} {
 		created, err := repository.CreateTask(
 			ctx,
-			core_domain.NewTaskUninitialized(title, nil, nil),
+			core_domain.NewTaskUninitialized(title, nil, nil, nil),
 		)
 		if err != nil {
 			t.Fatalf("prepare task %q: %v", title, err)
@@ -261,6 +264,7 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			core_domain.TaskPriorityLow,
 			baseTime.Add(time.Minute),
 			baseTime.Add(time.Minute),
+			nil,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -270,6 +274,7 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			core_domain.TaskPriorityMedium,
 			baseTime.Add(2*time.Minute),
 			baseTime.Add(2*time.Minute),
+			nil,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -279,6 +284,7 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			core_domain.TaskPriorityHigh,
 			baseTime.Add(3*time.Minute),
 			baseTime.Add(3*time.Minute),
+			nil,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -288,6 +294,7 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			core_domain.TaskPriorityHigh,
 			baseTime.Add(4*time.Minute),
 			baseTime.Add(4*time.Minute),
+			nil,
 		),
 	}
 
@@ -411,6 +418,7 @@ func TestTasksRepositoryGetTasksEmpty(t *testing.T) {
 func TestTasksRepositoryGetTasksSuccess(t *testing.T) {
 	repository := newTestRepository(t)
 	ctx := newTestContext(t)
+	dueAt := time.Date(2027, time.January, 10, 12, 0, 0, 0, time.UTC)
 
 	titles := []string{
 		"First task",
@@ -420,8 +428,11 @@ func TestTasksRepositoryGetTasksSuccess(t *testing.T) {
 
 	createdTasks := make([]core_domain.Task, 0, len(titles))
 
-	for _, title := range titles {
-		input := core_domain.NewTaskUninitialized(title, nil, nil)
+	for index, title := range titles {
+		input := core_domain.NewTaskUninitialized(title, nil, nil, nil)
+		if index == 0 {
+			input.DueAt = &dueAt
+		}
 
 		created, err := repository.CreateTask(ctx, input)
 		if err != nil {
@@ -481,6 +492,17 @@ func TestTasksRepositoryGetTasksSuccess(t *testing.T) {
 				expected.Title,
 			)
 		}
+
+		if actual.DueAt == nil && expected.DueAt != nil ||
+			actual.DueAt != nil && expected.DueAt == nil ||
+			actual.DueAt != nil && !actual.DueAt.Equal(*expected.DueAt) {
+			t.Errorf(
+				"item %d: unexpected due_at: got %v, want %v",
+				i,
+				actual.DueAt,
+				expected.DueAt,
+			)
+		}
 	}
 
 	if result.Params != params {
@@ -514,7 +536,7 @@ func TestTasksRepositoryGetTasksPagination(t *testing.T) {
 	createdTasks := make([]core_domain.Task, 0, len(titles))
 
 	for _, title := range titles {
-		input := core_domain.NewTaskUninitialized(title, nil, nil)
+		input := core_domain.NewTaskUninitialized(title, nil, nil, nil)
 
 		created, err := repository.CreateTask(ctx, input)
 		if err != nil {

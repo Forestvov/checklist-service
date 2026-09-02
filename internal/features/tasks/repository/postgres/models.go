@@ -14,6 +14,7 @@ type TaskModel struct {
 	Priority    core_domain.TaskPriority
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	DueAt       *time.Time
 }
 
 func taskDomainFromModel(taskModel TaskModel) core_domain.Task {
@@ -25,6 +26,7 @@ func taskDomainFromModel(taskModel TaskModel) core_domain.Task {
 		taskModel.Priority,
 		taskModel.CreatedAt,
 		taskModel.UpdatedAt,
+		taskModel.DueAt,
 	)
 }
 

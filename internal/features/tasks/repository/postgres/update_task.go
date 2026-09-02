@@ -24,9 +24,10 @@ func (r *TasksRepository) UpdateTask(
 			description = $3,
 			done = $4,
 			priority = $5,
-			updated_at = $6
+			updated_at = $6,
+			due_at = $7
 		WHERE id = $1
-		RETURNING id, title, description, done, priority, created_at, updated_at;
+		RETURNING id, title, description, done, priority, created_at, updated_at, due_at;
 		`
 
 	row := r.pool.QueryRow(
@@ -38,6 +39,7 @@ func (r *TasksRepository) UpdateTask(
 		taskUpdate.Done,
 		taskUpdate.Priority,
 		taskUpdate.UpdatedAt,
+		taskUpdate.DueAt,
 	)
 
 	var taskModel TaskModel
@@ -49,6 +51,7 @@ func (r *TasksRepository) UpdateTask(
 		&taskModel.Priority,
 		&taskModel.CreatedAt,
 		&taskModel.UpdatedAt,
+		&taskModel.DueAt,
 	)
 	if err != nil {
 		if errors.Is(err, core_postgres_pool.ErrNoRows) {

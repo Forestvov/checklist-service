@@ -26,6 +26,7 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 		0,
 		time.UTC,
 	)
+	dueAt := now.Add(24 * time.Hour)
 
 	expectedTasks := []core_domain.Task{
 		core_domain.NewTask(
@@ -36,7 +37,9 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			core_domain.TaskPriorityHigh,
 			now,
 			now,
+			&dueAt,
 		),
+
 		core_domain.NewTask(
 			41,
 			"Write tests",
@@ -45,6 +48,7 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			core_domain.TaskPriorityLow,
 			now,
 			now,
+			nil,
 		),
 	}
 
@@ -146,6 +150,9 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			response.Data[0].Priority,
 		)
 	}
+	if response.Data[0].DueAt == nil || !response.Data[0].DueAt.Equal(dueAt) {
+		t.Errorf("expected first task due_at %v, got %v", dueAt, response.Data[0].DueAt)
+	}
 
 	if response.Data[1].ID != expectedTasks[1].ID {
 		t.Errorf(
@@ -160,6 +167,9 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			expectedTasks[1].Priority,
 			response.Data[1].Priority,
 		)
+	}
+	if response.Data[1].DueAt != nil {
+		t.Errorf("expected second task without due_at, got %v", response.Data[1].DueAt)
 	}
 
 	if response.Meta.Page != 2 {

@@ -23,6 +23,7 @@ type Task struct {
 	Priority    TaskPriority
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	DueAt       *time.Time
 }
 
 func NewTask(
@@ -33,6 +34,7 @@ func NewTask(
 	priority TaskPriority,
 	createdAt time.Time,
 	updatedAt time.Time,
+	dueAt *time.Time,
 ) Task {
 	return Task{
 		ID:          id,
@@ -42,6 +44,7 @@ func NewTask(
 		Priority:    priority,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
+		DueAt:       dueAt,
 	}
 }
 
@@ -49,6 +52,7 @@ func NewTaskUninitialized(
 	title string,
 	description *string,
 	priority *TaskPriority,
+	dueAt *time.Time,
 ) Task {
 	descriptionValue := ""
 	if description != nil {
@@ -70,6 +74,7 @@ func NewTaskUninitialized(
 		priorityValue,
 		now,
 		now,
+		dueAt,
 	)
 }
 
@@ -78,6 +83,7 @@ type UpdateTask struct {
 	Description Nullable[string]
 	Done        Nullable[bool]
 	Priority    Nullable[TaskPriority]
+	DueAt       Nullable[time.Time]
 }
 
 func NewUpdateTask(
@@ -85,12 +91,14 @@ func NewUpdateTask(
 	description Nullable[string],
 	done Nullable[bool],
 	priority Nullable[TaskPriority],
+	dueAt Nullable[time.Time],
 ) UpdateTask {
 	return UpdateTask{
 		Title:       title,
 		Description: description,
 		Done:        done,
 		Priority:    priority,
+		DueAt:       dueAt,
 	}
 }
 
@@ -98,7 +106,8 @@ func (u UpdateTask) Validate() error {
 	if !u.Title.Set &&
 		!u.Description.Set &&
 		!u.Done.Set &&
-		!u.Priority.Set {
+		!u.Priority.Set &&
+		!u.DueAt.Set {
 		return fmt.Errorf("at least one task field must be provided: %w", core_errors.ErrInvalidArgument)
 	}
 
@@ -210,6 +219,10 @@ func (t *Task) ApplyUpdate(patch UpdateTask) error {
 
 	if patch.Priority.Set {
 		tmp.Priority = *patch.Priority.Value
+	}
+
+	if patch.DueAt.Set {
+		tmp.DueAt = patch.DueAt.Value
 	}
 
 	if err := tmp.Validate(); err != nil {

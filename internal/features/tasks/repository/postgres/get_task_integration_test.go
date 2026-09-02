@@ -19,6 +19,7 @@ func TestTasksRepositoryGetTaskSuccess(t *testing.T) {
 		"Buy groceries",
 		&description,
 		nil,
+		nil,
 	)
 
 	expected, err := repository.CreateTask(ctx, input)

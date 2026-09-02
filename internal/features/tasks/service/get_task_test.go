@@ -20,6 +20,7 @@ func TestTaskServiceGetTaskSuccess(t *testing.T) {
 		core_domain.DefaultTaskPriority,
 		now,
 		now,
+		nil,
 	)
 
 	var repositoryTaskID int64

@@ -12,6 +12,7 @@ import (
 
 func TestTaskServiceUpdateTaskSuccess(t *testing.T) {
 	createdAt := time.Date(2026, time.April, 14, 12, 0, 0, 0, time.UTC)
+	dueAt := createdAt.Add(48 * time.Hour)
 	original := core_domain.NewTask(
 		defaultTaskID,
 		"Buy groceries",
@@ -20,6 +21,7 @@ func TestTaskServiceUpdateTaskSuccess(t *testing.T) {
 		core_domain.DefaultTaskPriority,
 		createdAt,
 		createdAt,
+		nil,
 	)
 
 	newDescription := "Milk, bread and eggs"
@@ -29,12 +31,14 @@ func TestTaskServiceUpdateTaskSuccess(t *testing.T) {
 		setDomainNullable(newDescription),
 		setDomainNullable(done),
 		setDomainNullable(core_domain.TaskPriorityHigh),
+		setDomainNullable(dueAt),
 	)
 
 	repositoryResult := original
 	repositoryResult.Description = newDescription
 	repositoryResult.Done = done
 	repositoryResult.Priority = core_domain.TaskPriorityHigh
+	repositoryResult.DueAt = &dueAt
 	repositoryResult.UpdatedAt = createdAt.Add(time.Hour)
 
 	var (
@@ -90,6 +94,9 @@ func TestTaskServiceUpdateTaskSuccess(t *testing.T) {
 	if updateTaskValue.Priority != core_domain.TaskPriorityHigh {
 		t.Errorf("expected priority %q, got %q", core_domain.TaskPriorityHigh, updateTaskValue.Priority)
 	}
+	if updateTaskValue.DueAt == nil || !updateTaskValue.DueAt.Equal(dueAt) {
+		t.Errorf("expected due_at %v, got %v", dueAt, updateTaskValue.DueAt)
+	}
 	if updateTaskValue.UpdatedAt.Before(beforeUpdate) || updateTaskValue.UpdatedAt.After(afterUpdate) {
 		t.Errorf("expected updated_at between %v and %v, got %v", beforeUpdate, afterUpdate, updateTaskValue.UpdatedAt)
 	}
@@ -140,7 +147,9 @@ func TestTaskServiceUpdateTaskInvalidPatch(t *testing.T) {
 		core_domain.DefaultTaskPriority,
 		time.Now(),
 		time.Now(),
+		nil,
 	)
+
 	updateCalled := false
 	repository := taskRepositoryStub{
 		getTaskFunc: func(_ context.Context, _ int64) (core_domain.Task, error) {
@@ -182,7 +191,9 @@ func TestTaskServiceUpdateTaskRepositoryError(t *testing.T) {
 		core_domain.DefaultTaskPriority,
 		time.Now(),
 		time.Now(),
+		nil,
 	)
+
 	title := "Updated title"
 	repository := taskRepositoryStub{
 		getTaskFunc: func(_ context.Context, _ int64) (core_domain.Task, error) {
@@ -205,6 +216,7 @@ func TestTaskServiceUpdateTaskRepositoryError(t *testing.T) {
 			core_domain.Nullable[string]{},
 			core_domain.Nullable[bool]{},
 			core_domain.Nullable[core_domain.TaskPriority]{},
+			core_domain.Nullable[time.Time]{},
 		),
 	)
 	if !errors.Is(err, repositoryError) {

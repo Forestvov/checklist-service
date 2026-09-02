@@ -5,6 +5,7 @@ package tasks_postgres_repository
 import (
 	"strings"
 	"testing"
+	"time"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
@@ -16,10 +17,12 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 
 	description := "Milk, bread and vegetables"
 	priority := core_domain.TaskPriorityHigh
+	dueAt := time.Date(2027, time.January, 10, 12, 0, 0, 0, time.UTC)
 	input := core_domain.NewTaskUninitialized(
 		"Buy groceries",
 		&description,
 		&priority,
+		&dueAt,
 	)
 
 	created, err := repository.CreateTask(ctx, input)
@@ -47,6 +50,9 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 	}
 	if created.Priority != priority {
 		t.Errorf("unexpected priority: got %q, want %q", created.Priority, priority)
+	}
+	if created.DueAt == nil || !created.DueAt.Equal(dueAt) {
+		t.Errorf("unexpected due_at: got %v, want %v", created.DueAt, dueAt)
 	}
 
 	if created.CreatedAt.IsZero() {
@@ -80,6 +86,9 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 	if stored.Priority != created.Priority {
 		t.Errorf("unexpected stored priority: got %q, want %q", stored.Priority, created.Priority)
 	}
+	if stored.DueAt == nil || !stored.DueAt.Equal(dueAt) {
+		t.Errorf("unexpected stored due_at: got %v, want %v", stored.DueAt, dueAt)
+	}
 	if !stored.CreatedAt.Equal(created.CreatedAt) {
 		t.Errorf(
 			"unexpected stored created_at: got %s, want %s",
@@ -97,14 +106,14 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 }
 
 func TestTasksRepositoryCreateTaskRejectsInvalidTitle(t *testing.T) {
-	input := core_domain.NewTaskUninitialized("ab", nil, nil)
+	input := core_domain.NewTaskUninitialized("ab", nil, nil, nil)
 
 	assertCreateTaskRejected(t, input)
 }
 
 func TestTasksRepositoryCreateTaskRejectsLongDescription(t *testing.T) {
 	description := strings.Repeat("a", 5001)
-	input := core_domain.NewTaskUninitialized("Valid title", &description, nil)
+	input := core_domain.NewTaskUninitialized("Valid title", &description, nil, nil)
 
 	assertCreateTaskRejected(t, input)
 }

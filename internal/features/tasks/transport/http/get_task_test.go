@@ -17,6 +17,7 @@ import (
 
 func TestTasksHTTPHandlerGetTaskSuccess(t *testing.T) {
 	now := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
+	dueAt := now.Add(24 * time.Hour)
 
 	expectedTask := core_domain.NewTask(
 		defaultTaskID,
@@ -26,6 +27,7 @@ func TestTasksHTTPHandlerGetTaskSuccess(t *testing.T) {
 		core_domain.DefaultTaskPriority,
 		now,
 		now,
+		&dueAt,
 	)
 
 	var serviceTaskID int64
@@ -115,6 +117,9 @@ func TestTasksHTTPHandlerGetTaskSuccess(t *testing.T) {
 			expectedTask.Priority,
 			response.Priority,
 		)
+	}
+	if response.DueAt == nil || !response.DueAt.Equal(dueAt) {
+		t.Errorf("expected due_at %v, got %v", dueAt, response.DueAt)
 	}
 }
 

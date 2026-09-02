@@ -18,6 +18,7 @@ import (
 func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 	createdAt := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
 	updatedAt := createdAt.Add(time.Hour)
+	dueAt := createdAt.Add(24 * time.Hour)
 	expectedTask := core_domain.NewTask(
 		defaultTaskID,
 		"Buy groceries",
@@ -26,6 +27,7 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 		core_domain.TaskPriorityHigh,
 		createdAt,
 		updatedAt,
+		&dueAt,
 	)
 
 	var (
@@ -48,7 +50,7 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPatch,
 		"/api/v1/tasks/"+taskIDPath,
-		strings.NewReader(`{"description":"Milk, bread and eggs","done":true,"priority":"high"}`),
+		strings.NewReader(`{"description":"Milk, bread and eggs","done":true,"priority":"high","due_at":"2026-12-26T00:00:00Z"}`),
 	)
 	request.SetPathValue("id", taskIDPath)
 	request = requestWithTestLogger(request)
@@ -76,6 +78,11 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 		*servicePatch.Priority.Value != core_domain.TaskPriorityHigh {
 		t.Errorf("unexpected priority patch: %+v", servicePatch.Priority)
 	}
+	if !servicePatch.DueAt.Set ||
+		servicePatch.DueAt.Value == nil ||
+		!servicePatch.DueAt.Value.Equal(dueAt) {
+		t.Errorf("unexpected due_at patch: %+v", servicePatch.DueAt)
+	}
 
 	var response UpdateTaskResponse
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
@@ -86,9 +93,63 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 		response.Description != expectedTask.Description ||
 		response.Done != expectedTask.Done ||
 		response.Priority != expectedTask.Priority ||
+		response.DueAt == nil ||
+		!response.DueAt.Equal(*expectedTask.DueAt) ||
 		!response.CreatedAt.Equal(expectedTask.CreatedAt) ||
 		!response.UpdatedAt.Equal(expectedTask.UpdatedAt) {
 		t.Errorf("expected response for task %+v, got %+v", expectedTask, response)
+	}
+}
+
+func TestTasksHTTPHandlerUpdateTaskClearDueAt(t *testing.T) {
+	var servicePatch core_domain.UpdateTask
+	service := tasksServiceStub{
+		updateTaskFunc: func(
+			_ context.Context,
+			_ int64,
+			patch core_domain.UpdateTask,
+		) (core_domain.Task, error) {
+			servicePatch = patch
+			return core_domain.NewTask(
+				defaultTaskID,
+				"Buy groceries",
+				"",
+				false,
+				core_domain.DefaultTaskPriority,
+				time.Now(),
+				time.Now(),
+				nil,
+			), nil
+		},
+	}
+	taskIDPath := strconv.FormatInt(defaultTaskID, 10)
+	request := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/v1/tasks/"+taskIDPath,
+		strings.NewReader(`{"due_at":null}`),
+	)
+	request.SetPathValue("id", taskIDPath)
+	request = requestWithTestLogger(request)
+	recorder := httptest.NewRecorder()
+
+	NewTasksHTTPHandler(service).UpdateTask(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d: %s", http.StatusOK, recorder.Code, recorder.Body.String())
+	}
+	if !servicePatch.DueAt.Set {
+		t.Fatal("expected due_at patch to be set")
+	}
+	if servicePatch.DueAt.Value != nil {
+		t.Errorf("expected nil due_at value, got %v", servicePatch.DueAt.Value)
+	}
+
+	var response UpdateTaskResponse
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response.DueAt != nil {
+		t.Errorf("expected cleared response due_at, got %v", response.DueAt)
 	}
 }
 
@@ -106,6 +167,7 @@ func TestTasksHTTPHandlerUpdateTaskInvalidRequest(t *testing.T) {
 		{name: "wrong done type", body: `{"done":"true"}`},
 		{name: "wrong priority type", body: `{"priority":1}`},
 		{name: "unsupported priority", body: `{"priority":"critical"}`},
+		{name: "invalid due_at", body: `{"due_at":"tomorrow"}`},
 		{name: "unknown field", body: `{"completed":true}`},
 		{name: "malformed JSON", body: `{"done":`},
 	}

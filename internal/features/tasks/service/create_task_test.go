@@ -13,10 +13,12 @@ import (
 func TestTaskServiceCreateTaskSuccess(t *testing.T) {
 	description := "Milk and bread"
 	priority := core_domain.TaskPriorityHigh
+	dueAt := time.Date(2027, time.January, 10, 12, 0, 0, 0, time.UTC)
 	inputTask := core_domain.NewTaskUninitialized(
 		"Buy groceries",
 		&description,
 		&priority,
+		&dueAt,
 	)
 
 	now := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
@@ -28,6 +30,7 @@ func TestTaskServiceCreateTaskSuccess(t *testing.T) {
 		priority,
 		now,
 		now,
+		&dueAt,
 	)
 
 	var repositoryArgument core_domain.Task
@@ -71,6 +74,7 @@ func TestTaskServiceCreateTaskInvalidTask(t *testing.T) {
 		"a",
 		nil,
 		nil,
+		nil,
 	)
 
 	repositoryCalled := false
@@ -112,6 +116,7 @@ func TestTaskServiceCreateTaskInvalidTask(t *testing.T) {
 func TestTaskServiceCreateTaskRepositoryError(t *testing.T) {
 	inputTask := core_domain.NewTaskUninitialized(
 		"Buy groceries",
+		nil,
 		nil,
 		nil,
 	)
