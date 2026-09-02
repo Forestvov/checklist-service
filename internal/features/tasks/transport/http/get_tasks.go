@@ -25,6 +25,8 @@ type GetTasksResponse struct {
 // @Description If priority is omitted, tasks of all priorities are returned.
 // @Description By default, tasks are ordered by created_at in descending order.
 // @Description A page beyond the available range returns an empty data array with the requested pagination metadata.
+// @Description If overdue=true, only unfinished tasks with a past due date are returned.
+// @Description If overdue=false, only tasks that are not currently overdue are returned.
 // @Tags tasks
 // @Produce json
 // @Param page query int false "Page number" default(1) minimum(1)
@@ -33,6 +35,7 @@ type GetTasksResponse struct {
 // @Param priority query string false "Filter by priority" Enums(low,medium,high)
 // @Param sort query string false "Sort field" Enums(created_at,updated_at,title,priority,due_at) default(created_at)
 // @Param order query string false "Sort direction" Enums(asc,desc) default(desc)
+// @Param overdue query bool false "Filter by overdue status"
 // @Success 200 {object} GetTasksResponse "Paginated task list"
 // @Failure 400 {object} core_http_response.ErrorResponse "Invalid pagination or filter parameters"
 // @Failure 500 {object} core_http_response.ErrorResponse "Unexpected server error"
@@ -51,7 +54,7 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	done, priority, sortBy, orderBy, err := getTasksFilterQueryParams(r)
+	filter, err := getTasksFilterQueryParams(r)
 	if err != nil {
 		responseHandler.ErrorResponse(
 			err,
@@ -59,13 +62,6 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-
-	filter := core_domain.NewTaskFilter(
-		done,
-		priority,
-		sortBy,
-		orderBy,
-	)
 
 	tasksResult, err := h.tasksService.GetTasks(
 		ctx,
@@ -87,29 +83,54 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 	responseHandler.JSONResponse(response, http.StatusOK)
 }
 
-func getTasksFilterQueryParams(r *http.Request) (*bool, *core_domain.TaskPriority, core_domain.TaskSort, core_domain.SortOrder, error) {
+func getTasksFilterQueryParams(
+	r *http.Request,
+) (core_domain.TaskFilter, error) {
 	const (
 		doneParam     = "done"
 		priorityParam = "priority"
+		overdueParam  = "overdue"
 		sortByParam   = "sort"
 		orderByParam  = "order"
 	)
 
 	done, err := core_http_request.GetBoolQueryParam(r, doneParam)
 	if err != nil {
-		return nil, nil, "", "", fmt.Errorf("failed to get done param: %w", err)
+		return core_domain.TaskFilter{}, fmt.Errorf(
+			"failed to get done param: %w",
+			err,
+		)
+	}
+
+	overdue, err := core_http_request.GetBoolQueryParam(r, overdueParam)
+	if err != nil {
+		return core_domain.TaskFilter{}, fmt.Errorf(
+			"failed to get overdue param: %w",
+			err,
+		)
 	}
 
 	query := r.URL.Query()
 	priority, err := getTaskPriorityQueryParam(query, priorityParam)
 	if err != nil {
-		return nil, nil, "", "", fmt.Errorf("failed to get priority param: %w", err)
+		return core_domain.TaskFilter{}, fmt.Errorf(
+			"failed to get priority param: %w",
+			err,
+		)
 	}
 
 	sortBy := core_domain.TaskSort(query.Get(sortByParam))
 	order := core_domain.SortOrder(query.Get(orderByParam))
 
-	return done, priority, sortBy, order, nil
+	filter := core_domain.NewTaskFilter(
+		done,
+		priority,
+		overdue,
+		sortBy,
+		order,
+	)
+
+	return filter, nil
 }
 
 func getTaskPriorityQueryParam(

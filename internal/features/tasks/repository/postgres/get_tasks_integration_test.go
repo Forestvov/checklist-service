@@ -141,7 +141,8 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			result, err := repository.GetTasks(
 				ctx,
 				params,
-				core_domain.NewTaskFilter(nil, nil, tt.sort, tt.order),
+				core_domain.NewTaskFilter(nil, nil, nil, tt.sort, tt.order),
+				time.Now().UTC(),
 			)
 			if err != nil {
 				t.Fatalf("get sorted tasks: %v", err)
@@ -235,7 +236,8 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 			result, err := repository.GetTasks(
 				ctx,
 				params,
-				core_domain.NewTaskFilter(&tt.done, nil, "", ""),
+				core_domain.NewTaskFilter(&tt.done, nil, nil, "", ""),
+				time.Now().UTC(),
 			)
 			if err != nil {
 				t.Fatalf("get filtered tasks: %v", err)
@@ -267,7 +269,8 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		filteredParams,
-		core_domain.NewTaskFilter(&done, nil, "", ""),
+		core_domain.NewTaskFilter(&done, nil, nil, "", ""),
+		time.Now().UTC(),
 	)
 	if err != nil {
 		t.Fatalf("get filtered task page: %v", err)
@@ -398,7 +401,8 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			result, err := repository.GetTasks(
 				ctx,
 				params,
-				core_domain.NewTaskFilter(tt.done, tt.priority, "", ""),
+				core_domain.NewTaskFilter(tt.done, tt.priority, nil, "", ""),
+				time.Now().UTC(),
 			)
 			if err != nil {
 				t.Fatalf("get filtered tasks: %v", err)
@@ -424,6 +428,150 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 	}
 }
 
+func TestTasksRepositoryGetTasksOverdueFilter(t *testing.T) {
+	repository := newTestRepository(t)
+	ctx := newTestContext(t)
+	referenceTime := time.Date(2026, time.September, 10, 12, 0, 0, 0, time.UTC)
+	pastDueAt := referenceTime.Add(-time.Hour)
+	exactDueAt := referenceTime
+	futureDueAt := referenceTime.Add(time.Hour)
+
+	inputs := []core_domain.Task{
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Overdue open task",
+			"",
+			false,
+			core_domain.DefaultTaskPriority,
+			referenceTime.Add(-5*time.Minute),
+			referenceTime.Add(-5*time.Minute),
+			&pastDueAt,
+			core_domain.UninitializedVersion,
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Task due exactly now",
+			"",
+			false,
+			core_domain.DefaultTaskPriority,
+			referenceTime.Add(-4*time.Minute),
+			referenceTime.Add(-4*time.Minute),
+			&exactDueAt,
+			core_domain.UninitializedVersion,
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Future task",
+			"",
+			false,
+			core_domain.DefaultTaskPriority,
+			referenceTime.Add(-3*time.Minute),
+			referenceTime.Add(-3*time.Minute),
+			&futureDueAt,
+			core_domain.UninitializedVersion,
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Task without deadline",
+			"",
+			false,
+			core_domain.DefaultTaskPriority,
+			referenceTime.Add(-2*time.Minute),
+			referenceTime.Add(-2*time.Minute),
+			nil,
+			core_domain.UninitializedVersion,
+		),
+		core_domain.NewTask(
+			core_domain.UninitializedID,
+			"Completed past task",
+			"",
+			true,
+			core_domain.DefaultTaskPriority,
+			referenceTime.Add(-time.Minute),
+			referenceTime.Add(-time.Minute),
+			&pastDueAt,
+			core_domain.UninitializedVersion,
+		),
+	}
+
+	createdTasks := make([]core_domain.Task, 0, len(inputs))
+	for _, input := range inputs {
+		created, err := repository.CreateTask(ctx, input)
+		if err != nil {
+			t.Fatalf("prepare task %q: %v", input.Title, err)
+		}
+		createdTasks = append(createdTasks, created)
+	}
+
+	params, err := core_pagination.NewParams(nil, nil)
+	if err != nil {
+		t.Fatalf("create default pagination params: %v", err)
+	}
+
+	overdue := true
+	notOverdue := false
+	done := true
+	tests := []struct {
+		name        string
+		done        *bool
+		overdue     *bool
+		expectedIDs []int64
+	}{
+		{
+			name: "overdue filter omitted",
+			expectedIDs: []int64{
+				createdTasks[4].ID,
+				createdTasks[3].ID,
+				createdTasks[2].ID,
+				createdTasks[1].ID,
+				createdTasks[0].ID,
+			},
+		},
+		{
+			name:        "overdue tasks",
+			overdue:     &overdue,
+			expectedIDs: []int64{createdTasks[0].ID},
+		},
+		{
+			name:    "not overdue tasks",
+			overdue: &notOverdue,
+			expectedIDs: []int64{
+				createdTasks[4].ID,
+				createdTasks[3].ID,
+				createdTasks[2].ID,
+				createdTasks[1].ID,
+			},
+		},
+		{
+			name:        "completed and overdue",
+			done:        &done,
+			overdue:     &overdue,
+			expectedIDs: []int64{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filter := core_domain.NewTaskFilter(tt.done, nil, tt.overdue, "", "")
+			result, err := repository.GetTasks(ctx, params, filter, referenceTime)
+			if err != nil {
+				t.Fatalf("get filtered tasks: %v", err)
+			}
+
+			actualIDs := make([]int64, 0, len(result.Items))
+			for _, task := range result.Items {
+				actualIDs = append(actualIDs, task.ID)
+			}
+			if !slices.Equal(actualIDs, tt.expectedIDs) {
+				t.Errorf("unexpected task IDs: got %v, want %v", actualIDs, tt.expectedIDs)
+			}
+			if result.Total != int64(len(tt.expectedIDs)) {
+				t.Errorf("unexpected total: got %d, want %d", result.Total, len(tt.expectedIDs))
+			}
+		})
+	}
+}
+
 func TestTasksRepositoryGetTasksEmpty(t *testing.T) {
 	repository := newTestRepository(t)
 	ctx := newTestContext(t)
@@ -436,7 +584,8 @@ func TestTasksRepositoryGetTasksEmpty(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		params,
-		core_domain.NewTaskFilter(nil, nil, "", ""),
+		core_domain.NewTaskFilter(nil, nil, nil, "", ""),
+		time.Now().UTC(),
 	)
 	if err != nil {
 		t.Fatalf("get tasks from migrated database: %v", err)
@@ -487,7 +636,8 @@ func TestTasksRepositoryGetTasksSuccess(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		params,
-		core_domain.NewTaskFilter(nil, nil, "", ""),
+		core_domain.NewTaskFilter(nil, nil, nil, "", ""),
+		time.Now().UTC(),
 	)
 	if err != nil {
 		t.Fatalf("get tasks: %v", err)
@@ -594,7 +744,8 @@ func TestTasksRepositoryGetTasksPagination(t *testing.T) {
 	result, err := repository.GetTasks(
 		ctx,
 		params,
-		core_domain.NewTaskFilter(nil, nil, "", ""),
+		core_domain.NewTaskFilter(nil, nil, nil, "", ""),
+		time.Now().UTC(),
 	)
 	if err != nil {
 		t.Fatalf("get tasks: %v", err)

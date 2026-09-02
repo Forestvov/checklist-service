@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/api/v1/tasks": {
             "get": {
-                "description": "Returns a filtered and sorted task list using page-based pagination.\nIf page or per_page is omitted, the defaults are page=1 and per_page=20.\nIf done is omitted, tasks of both statuses are returned.\nIf priority is omitted, tasks of all priorities are returned.\nBy default, tasks are ordered by created_at in descending order.\nA page beyond the available range returns an empty data array with the requested pagination metadata.",
+                "description": "Returns a filtered and sorted task list using page-based pagination.\nIf page or per_page is omitted, the defaults are page=1 and per_page=20.\nIf done is omitted, tasks of both statuses are returned.\nIf priority is omitted, tasks of all priorities are returned.\nBy default, tasks are ordered by created_at in descending order.\nA page beyond the available range returns an empty data array with the requested pagination metadata.\nIf overdue=true, only unfinished tasks with a past due date are returned.\nIf overdue=false, only tasks that are not currently overdue are returned.",
                 "produces": [
                     "application/json"
                 ],
@@ -83,6 +83,12 @@ const docTemplate = `{
                         "default": "desc",
                         "description": "Sort direction",
                         "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by overdue status",
+                        "name": "overdue",
                         "in": "query"
                     }
                 ],

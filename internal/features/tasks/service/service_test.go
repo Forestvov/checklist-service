@@ -2,6 +2,7 @@ package tasks_service
 
 import (
 	"context"
+	"time"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
@@ -19,6 +20,7 @@ type taskRepositoryStub struct {
 		ctx context.Context,
 		paginationParams core_pagination.Params,
 		filter core_domain.TaskFilter,
+		referenceTime time.Time,
 	) (core_pagination.Result[core_domain.Task], error)
 
 	getTaskFunc func(
@@ -50,8 +52,9 @@ func (s taskRepositoryStub) GetTasks(
 	ctx context.Context,
 	paginationParams core_pagination.Params,
 	filter core_domain.TaskFilter,
+	referenceTime time.Time,
 ) (core_pagination.Result[core_domain.Task], error) {
-	return s.getTasksFunc(ctx, paginationParams, filter)
+	return s.getTasksFunc(ctx, paginationParams, filter, referenceTime)
 }
 
 func (s taskRepositoryStub) GetTask(

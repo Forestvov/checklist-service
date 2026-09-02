@@ -23,6 +23,7 @@ const (
 type TaskFilter struct {
 	Done     *bool
 	Priority *TaskPriority
+	Overdue  *bool
 	Sort     TaskSort
 	Order    SortOrder
 }
@@ -35,6 +36,7 @@ const (
 func NewTaskFilter(
 	done *bool,
 	priority *TaskPriority,
+	overdue *bool,
 	sortBy TaskSort,
 	order SortOrder,
 ) TaskFilter {
@@ -49,6 +51,7 @@ func NewTaskFilter(
 	return TaskFilter{
 		Done:     done,
 		Priority: priority,
+		Overdue:  overdue,
 		Sort:     sortBy,
 		Order:    order,
 	}

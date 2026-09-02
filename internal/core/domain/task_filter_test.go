@@ -10,11 +10,13 @@ import (
 func TestNewTaskFilter(t *testing.T) {
 	done := true
 	priority := TaskPriorityHigh
+	overdue := true
 
 	tests := []struct {
 		name      string
 		done      *bool
 		priority  *TaskPriority
+		overdue   *bool
 		sort      TaskSort
 		order     SortOrder
 		wantSort  TaskSort
@@ -29,6 +31,7 @@ func TestNewTaskFilter(t *testing.T) {
 			name:      "provided values",
 			done:      &done,
 			priority:  &priority,
+			overdue:   &overdue,
 			sort:      TaskSortTitle,
 			order:     SortOrderAsc,
 			wantSort:  TaskSortTitle,
@@ -38,13 +41,22 @@ func TestNewTaskFilter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			filter := NewTaskFilter(tt.done, tt.priority, tt.sort, tt.order)
+			filter := NewTaskFilter(
+				tt.done,
+				tt.priority,
+				tt.overdue,
+				tt.sort,
+				tt.order,
+			)
 
 			if filter.Done != tt.done {
 				t.Errorf("expected done pointer %p, got %p", tt.done, filter.Done)
 			}
 			if filter.Priority != tt.priority {
 				t.Errorf("expected priority pointer %p, got %p", tt.priority, filter.Priority)
+			}
+			if filter.Overdue != tt.overdue {
+				t.Errorf("expected overdue pointer %p, got %p", tt.overdue, filter.Overdue)
 			}
 			if filter.Sort != tt.wantSort {
 				t.Errorf("expected sort %q, got %q", tt.wantSort, filter.Sort)
@@ -67,27 +79,27 @@ func TestTaskFilterValidate(t *testing.T) {
 	}{
 		{
 			name:   "created at ascending",
-			filter: NewTaskFilter(nil, nil, TaskSortCreatedAt, SortOrderAsc),
+			filter: NewTaskFilter(nil, nil, nil, TaskSortCreatedAt, SortOrderAsc),
 		},
 		{
 			name:   "updated at descending",
-			filter: NewTaskFilter(nil, nil, TaskSortUpdatedAt, SortOrderDesc),
+			filter: NewTaskFilter(nil, nil, nil, TaskSortUpdatedAt, SortOrderDesc),
 		},
 		{
 			name:   "title ascending",
-			filter: NewTaskFilter(nil, nil, TaskSortTitle, SortOrderAsc),
+			filter: NewTaskFilter(nil, nil, nil, TaskSortTitle, SortOrderAsc),
 		},
 		{
 			name:   "priority descending",
-			filter: NewTaskFilter(nil, nil, TaskSortPriority, SortOrderDesc),
+			filter: NewTaskFilter(nil, nil, nil, TaskSortPriority, SortOrderDesc),
 		},
 		{
 			name:   "due at ascending",
-			filter: NewTaskFilter(nil, nil, TaskSortDueAt, SortOrderAsc),
+			filter: NewTaskFilter(nil, nil, nil, TaskSortDueAt, SortOrderAsc),
 		},
 		{
 			name:   "priority filter",
-			filter: NewTaskFilter(nil, &validPriority, TaskSortCreatedAt, SortOrderDesc),
+			filter: NewTaskFilter(nil, &validPriority, nil, TaskSortCreatedAt, SortOrderDesc),
 		},
 		{
 			name: "unsupported sort",

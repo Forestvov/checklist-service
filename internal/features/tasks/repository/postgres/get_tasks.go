@@ -3,6 +3,7 @@ package tasks_postgres_repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
@@ -12,18 +13,12 @@ func (r *TasksRepository) GetTasks(
 	ctx context.Context,
 	paginationParams core_pagination.Params,
 	filter core_domain.TaskFilter,
+	referenceTime time.Time,
 ) (core_pagination.Result[core_domain.Task], error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
 
 	var emptyResult core_pagination.Result[core_domain.Task]
-
-	countSQL := `
-		SELECT COUNT(*)
-		FROM checklist.tasks
-		WHERE ($1::boolean IS NULL OR done = $1)
-			AND ($2::varchar IS NULL OR priority = $2);
-	`
 
 	var done any
 	if filter.Done != nil {
@@ -35,12 +30,34 @@ func (r *TasksRepository) GetTasks(
 		priority = *filter.Priority
 	}
 
+	var overdue any
+	if filter.Overdue != nil {
+		overdue = *filter.Overdue
+	}
+
+	countSQL := `
+		SELECT COUNT(*)
+		FROM checklist.tasks
+		WHERE ($1::boolean IS NULL OR done = $1)
+			AND ($2::varchar IS NULL OR priority = $2)
+			AND (
+				$3::boolean IS NULL
+				OR (
+					done = FALSE
+					AND due_at IS NOT NULL
+					AND due_at < $4::timestamptz
+				) = $3
+			);
+	`
+
 	var total int64
 	if err := r.pool.QueryRow(
 		ctx,
 		countSQL,
 		done,
 		priority,
+		overdue,
+		referenceTime,
 	).Scan(&total); err != nil {
 		return emptyResult, fmt.Errorf("count tasks: %w", err)
 	}
@@ -81,8 +98,16 @@ func (r *TasksRepository) GetTasks(
 		FROM checklist.tasks
 		WHERE ($1::boolean IS NULL OR done = $1)
 			AND ($2::varchar IS NULL OR priority = $2)
+			AND (
+				$3::boolean IS NULL
+				OR (
+					done = FALSE
+					AND due_at IS NOT NULL
+					AND due_at < $4::timestamptz
+				) = $3
+			)
 		ORDER BY %s, id %s
-		LIMIT $3 OFFSET $4;
+		LIMIT $5 OFFSET $6;
 	`, orderBy, orderDirection)
 
 	rows, err := r.pool.Query(
@@ -90,6 +115,8 @@ func (r *TasksRepository) GetTasks(
 		selectSQL,
 		done,
 		priority,
+		overdue,
+		referenceTime,
 		paginationParams.Limit(),
 		paginationParams.Offset(),
 	)

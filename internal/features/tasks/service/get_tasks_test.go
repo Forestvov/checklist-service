@@ -14,6 +14,7 @@ import (
 
 func TestTaskServiceGetTasksSuccess(t *testing.T) {
 	now := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
+	referenceTime := time.Date(2026, time.December, 25, 12, 0, 0, 0, time.UTC)
 
 	paginationParams := core_pagination.Params{
 		Page:    2,
@@ -52,16 +53,19 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 	)
 	done := true
 	priority := core_domain.TaskPriorityHigh
+	overdue := true
 	filter := core_domain.NewTaskFilter(
 		&done,
 		&priority,
+		&overdue,
 		core_domain.TaskSortTitle,
 		core_domain.SortOrderAsc,
 	)
 
 	var (
-		repositoryParams core_pagination.Params
-		repositoryFilter core_domain.TaskFilter
+		repositoryParams        core_pagination.Params
+		repositoryFilter        core_domain.TaskFilter
+		repositoryReferenceTime time.Time
 	)
 
 	repository := taskRepositoryStub{
@@ -69,15 +73,19 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 			_ context.Context,
 			params core_pagination.Params,
 			filter core_domain.TaskFilter,
+			actualReferenceTime time.Time,
 		) (core_pagination.Result[core_domain.Task], error) {
 			repositoryParams = params
 			repositoryFilter = filter
+			repositoryReferenceTime = actualReferenceTime
 
 			return expectedResult, nil
 		},
 	}
 
-	service := NewTaskService(repository)
+	service := newTaskService(repository, func() time.Time {
+		return referenceTime
+	})
 
 	actualResult, err := service.GetTasks(
 		context.Background(),
@@ -102,9 +110,19 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 		*repositoryFilter.Priority != core_domain.TaskPriorityHigh {
 		t.Errorf("expected priority=high filter, got %+v", repositoryFilter)
 	}
+	if repositoryFilter.Overdue == nil || !*repositoryFilter.Overdue {
+		t.Errorf("expected overdue=true filter, got %+v", repositoryFilter)
+	}
 	if repositoryFilter.Sort != core_domain.TaskSortTitle ||
 		repositoryFilter.Order != core_domain.SortOrderAsc {
 		t.Errorf("expected title asc sorting, got %+v", repositoryFilter)
+	}
+	if !repositoryReferenceTime.Equal(referenceTime) {
+		t.Errorf(
+			"expected reference time %v, got %v",
+			referenceTime,
+			repositoryReferenceTime,
+		)
 	}
 
 	if !slices.Equal(actualResult.Items, expectedResult.Items) {
@@ -171,6 +189,7 @@ func TestTaskServiceGetTasksInvalidFilter(t *testing.T) {
 					_ context.Context,
 					_ core_pagination.Params,
 					_ core_domain.TaskFilter,
+					_ time.Time,
 				) (core_pagination.Result[core_domain.Task], error) {
 					repositoryCalled = true
 					return core_pagination.Result[core_domain.Task]{}, nil
@@ -207,6 +226,7 @@ func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 	filter := core_domain.NewTaskFilter(
 		&done,
 		nil,
+		nil,
 		"",
 		"",
 	)
@@ -228,6 +248,7 @@ func TestTaskServiceGetTasksRepositoryError(t *testing.T) {
 			_ context.Context,
 			params core_pagination.Params,
 			filter core_domain.TaskFilter,
+			_ time.Time,
 		) (core_pagination.Result[core_domain.Task], error) {
 			repositoryParams = params
 			repositoryFilter = filter

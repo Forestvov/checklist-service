@@ -2,6 +2,7 @@ package tasks_service
 
 import (
 	"context"
+	"time"
 
 	core_domain "github.com/Forestvov/checklist-service/internal/core/domain"
 	core_pagination "github.com/Forestvov/checklist-service/internal/core/pagination"
@@ -9,6 +10,7 @@ import (
 
 type TaskService struct {
 	taskRepository TaskRepository
+	now            func() time.Time
 }
 
 type TaskRepository interface {
@@ -21,6 +23,7 @@ type TaskRepository interface {
 		ctx context.Context,
 		paginationParams core_pagination.Params,
 		filter core_domain.TaskFilter,
+		referenceTime time.Time,
 	) (core_pagination.Result[core_domain.Task], error)
 
 	GetTask(
@@ -44,7 +47,15 @@ type TaskRepository interface {
 func NewTaskService(
 	taskRepository TaskRepository,
 ) *TaskService {
+	return newTaskService(taskRepository, time.Now)
+}
+
+func newTaskService(
+	taskRepository TaskRepository,
+	now func() time.Time,
+) *TaskService {
 	return &TaskService{
 		taskRepository: taskRepository,
+		now:            now,
 	}
 }

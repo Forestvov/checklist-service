@@ -146,7 +146,8 @@ func assertCreateTaskRejected(t *testing.T, input core_domain.Task) {
 	result, err := repository.GetTasks(
 		ctx,
 		params,
-		core_domain.NewTaskFilter(nil, nil, "", ""),
+		core_domain.NewTaskFilter(nil, nil, nil, "", ""),
+		time.Now().UTC(),
 	)
 	if err != nil {
 		t.Fatalf("get tasks after rejected creation: %v", err)

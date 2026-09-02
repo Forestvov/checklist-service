@@ -20,10 +20,13 @@ func (s *TaskService) GetTasks(
 		)
 	}
 
+	referenceTime := s.now().UTC()
+
 	result, err := s.taskRepository.GetTasks(
 		ctx,
 		paginationParams,
 		filter,
+		referenceTime,
 	)
 	if err != nil {
 		return core_pagination.Result[core_domain.Task]{}, fmt.Errorf(

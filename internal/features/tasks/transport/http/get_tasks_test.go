@@ -120,6 +120,9 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 	if serviceFilter.Priority != nil {
 		t.Errorf("expected empty priority filter, got %+v", serviceFilter)
 	}
+	if serviceFilter.Overdue != nil {
+		t.Errorf("expected empty overdue filter, got %+v", serviceFilter)
+	}
 	if serviceFilter.Sort != core_domain.DefaultTaskSort ||
 		serviceFilter.Order != core_domain.DefaultSortOrder {
 		t.Errorf("expected default sorting, got %+v", serviceFilter)
@@ -372,6 +375,52 @@ func TestTasksHTTPHandlerGetTasksDoneFilter(t *testing.T) {
 	}
 }
 
+func TestTasksHTTPHandlerGetTasksOverdueFilter(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+		want  bool
+	}{
+		{name: "overdue tasks", query: "?overdue=true", want: true},
+		{name: "not overdue tasks", query: "?overdue=false", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var serviceFilter core_domain.TaskFilter
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					params core_pagination.Params,
+					filter core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					serviceFilter = filter
+					return core_pagination.NewResult[core_domain.Task](nil, 0, params), nil
+				},
+			}
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/api/v1/tasks"+tt.query,
+				nil,
+			)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			NewTasksHTTPHandler(service).GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+			}
+			if serviceFilter.Overdue == nil {
+				t.Fatal("expected overdue filter, got nil")
+			}
+			if *serviceFilter.Overdue != tt.want {
+				t.Errorf("expected overdue=%t, got %t", tt.want, *serviceFilter.Overdue)
+			}
+		})
+	}
+}
+
 func TestTasksHTTPHandlerGetTasksPriorityFilter(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -613,6 +662,57 @@ func TestTasksHTTPHandlerGetTasksInvalidDoneFilter(t *testing.T) {
 			}
 			if serviceCalled {
 				t.Fatal("service must not be called for an invalid done filter")
+			}
+			response := decodeErrorResponse(t, recorder)
+			if response.Error != core_errors.ErrInvalidArgument.Error() {
+				t.Errorf(
+					"expected error %q, got %q",
+					core_errors.ErrInvalidArgument,
+					response.Error,
+				)
+			}
+		})
+	}
+}
+
+func TestTasksHTTPHandlerGetTasksInvalidOverdueFilter(t *testing.T) {
+	tests := []struct {
+		name  string
+		query string
+	}{
+		{name: "empty value", query: "?overdue="},
+		{name: "invalid value", query: "?overdue=task"},
+		{name: "multiple values", query: "?overdue=true&overdue=false"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serviceCalled := false
+			service := tasksServiceStub{
+				getTasksFunc: func(
+					_ context.Context,
+					_ core_pagination.Params,
+					_ core_domain.TaskFilter,
+				) (core_pagination.Result[core_domain.Task], error) {
+					serviceCalled = true
+					return core_pagination.Result[core_domain.Task]{}, nil
+				},
+			}
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/api/v1/tasks"+tt.query,
+				nil,
+			)
+			request = requestWithTestLogger(request)
+			recorder := httptest.NewRecorder()
+
+			NewTasksHTTPHandler(service).GetTasks(recorder, request)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("expected status %d, got %d", http.StatusBadRequest, recorder.Code)
+			}
+			if serviceCalled {
+				t.Fatal("service must not be called for an invalid overdue filter")
 			}
 			response := decodeErrorResponse(t, recorder)
 			if response.Error != core_errors.ErrInvalidArgument.Error() {
