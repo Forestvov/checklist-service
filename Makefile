@@ -109,7 +109,8 @@ test-race:
 
 test-integration:
 	@$(GO) test -tags=integration -count=1 -timeout=5m \
-		./internal/features/tasks/repository/postgres
+		./internal/features/tasks/repository/postgres \
+		./internal/integration
 
 test-all: test test-integration
 
