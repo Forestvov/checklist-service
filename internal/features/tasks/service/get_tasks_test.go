@@ -30,6 +30,7 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 			now,
 			now,
 			nil,
+			3,
 		),
 		core_domain.NewTask(
 			9,
@@ -40,6 +41,7 @@ func TestTaskServiceGetTasksSuccess(t *testing.T) {
 			now,
 			now,
 			nil,
+			7,
 		),
 	}
 

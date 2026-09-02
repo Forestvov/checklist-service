@@ -35,6 +35,9 @@ func TestTasksRepositoryGetTaskSuccess(t *testing.T) {
 	if actual.ID != expected.ID {
 		t.Errorf("unexpected ID: got %d, want %d", actual.ID, expected.ID)
 	}
+	if actual.Version != expected.Version {
+		t.Errorf("unexpected version: got %d, want %d", actual.Version, expected.Version)
+	}
 
 	if actual.Title != expected.Title {
 		t.Errorf(

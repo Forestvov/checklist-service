@@ -77,7 +77,7 @@ func (r *TasksRepository) GetTasks(
 	}
 
 	selectSQL := fmt.Sprintf(`
-		SELECT id, title, description, done, priority, created_at, updated_at, due_at
+		SELECT id, title, description, done, priority, created_at, updated_at, due_at, version
 		FROM checklist.tasks
 		WHERE ($1::boolean IS NULL OR done = $1)
 			AND ($2::varchar IS NULL OR priority = $2)
@@ -111,6 +111,7 @@ func (r *TasksRepository) GetTasks(
 			&taskModel.CreatedAt,
 			&taskModel.UpdatedAt,
 			&taskModel.DueAt,
+			&taskModel.Version,
 		)
 		if err != nil {
 			return emptyResult, fmt.Errorf("scan tasks: %w", err)

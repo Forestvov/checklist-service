@@ -15,6 +15,7 @@ type TaskModel struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DueAt       *time.Time
+	Version     int64
 }
 
 func taskDomainFromModel(taskModel TaskModel) core_domain.Task {
@@ -27,6 +28,7 @@ func taskDomainFromModel(taskModel TaskModel) core_domain.Task {
 		taskModel.CreatedAt,
 		taskModel.UpdatedAt,
 		taskModel.DueAt,
+		taskModel.Version,
 	)
 }
 

@@ -24,6 +24,7 @@ type Task struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DueAt       *time.Time
+	Version     int64
 }
 
 func NewTask(
@@ -35,6 +36,7 @@ func NewTask(
 	createdAt time.Time,
 	updatedAt time.Time,
 	dueAt *time.Time,
+	version int64,
 ) Task {
 	return Task{
 		ID:          id,
@@ -45,6 +47,7 @@ func NewTask(
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
 		DueAt:       dueAt,
+		Version:     version,
 	}
 }
 
@@ -75,6 +78,7 @@ func NewTaskUninitialized(
 		now,
 		now,
 		dueAt,
+		UninitializedVersion,
 	)
 }
 

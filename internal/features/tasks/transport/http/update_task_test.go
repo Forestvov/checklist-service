@@ -16,6 +16,11 @@ import (
 )
 
 func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
+	const (
+		requestVersion  int64 = 2
+		responseVersion int64 = 3
+	)
+
 	createdAt := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
 	updatedAt := createdAt.Add(time.Hour)
 	dueAt := createdAt.Add(24 * time.Hour)
@@ -28,19 +33,23 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 		createdAt,
 		updatedAt,
 		&dueAt,
+		responseVersion,
 	)
 
 	var (
-		serviceTaskID int64
-		servicePatch  core_domain.UpdateTask
+		serviceTaskID          int64
+		serviceExpectedVersion int64
+		servicePatch           core_domain.UpdateTask
 	)
 	service := tasksServiceStub{
 		updateTaskFunc: func(
 			_ context.Context,
 			taskID int64,
+			expectedVersion int64,
 			patch core_domain.UpdateTask,
 		) (core_domain.Task, error) {
 			serviceTaskID = taskID
+			serviceExpectedVersion = expectedVersion
 			servicePatch = patch
 			return expectedTask, nil
 		},
@@ -50,7 +59,7 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPatch,
 		"/api/v1/tasks/"+taskIDPath,
-		strings.NewReader(`{"description":"Milk, bread and eggs","done":true,"priority":"high","due_at":"2026-12-26T00:00:00Z"}`),
+		strings.NewReader(`{"version":2,"description":"Milk, bread and eggs","done":true,"priority":"high","due_at":"2026-12-26T00:00:00Z"}`),
 	)
 	request.SetPathValue("id", taskIDPath)
 	request = requestWithTestLogger(request)
@@ -63,6 +72,13 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 	}
 	if serviceTaskID != defaultTaskID {
 		t.Errorf("expected service task ID %d, got %d", defaultTaskID, serviceTaskID)
+	}
+	if serviceExpectedVersion != requestVersion {
+		t.Errorf(
+			"expected service version %d, got %d",
+			requestVersion,
+			serviceExpectedVersion,
+		)
 	}
 	if servicePatch.Title.Set {
 		t.Error("expected omitted title to remain unset")
@@ -96,19 +112,30 @@ func TestTasksHTTPHandlerUpdateTaskSuccess(t *testing.T) {
 		response.DueAt == nil ||
 		!response.DueAt.Equal(*expectedTask.DueAt) ||
 		!response.CreatedAt.Equal(expectedTask.CreatedAt) ||
-		!response.UpdatedAt.Equal(expectedTask.UpdatedAt) {
+		!response.UpdatedAt.Equal(expectedTask.UpdatedAt) ||
+		response.Version != expectedTask.Version {
 		t.Errorf("expected response for task %+v, got %+v", expectedTask, response)
 	}
 }
 
 func TestTasksHTTPHandlerUpdateTaskClearDueAt(t *testing.T) {
-	var servicePatch core_domain.UpdateTask
+	const (
+		requestVersion  int64 = 2
+		responseVersion int64 = 3
+	)
+
+	var (
+		serviceExpectedVersion int64
+		servicePatch           core_domain.UpdateTask
+	)
 	service := tasksServiceStub{
 		updateTaskFunc: func(
 			_ context.Context,
 			_ int64,
+			expectedVersion int64,
 			patch core_domain.UpdateTask,
 		) (core_domain.Task, error) {
+			serviceExpectedVersion = expectedVersion
 			servicePatch = patch
 			return core_domain.NewTask(
 				defaultTaskID,
@@ -119,6 +146,7 @@ func TestTasksHTTPHandlerUpdateTaskClearDueAt(t *testing.T) {
 				time.Now(),
 				time.Now(),
 				nil,
+				responseVersion,
 			), nil
 		},
 	}
@@ -126,7 +154,7 @@ func TestTasksHTTPHandlerUpdateTaskClearDueAt(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPatch,
 		"/api/v1/tasks/"+taskIDPath,
-		strings.NewReader(`{"due_at":null}`),
+		strings.NewReader(`{"version":2,"due_at":null}`),
 	)
 	request.SetPathValue("id", taskIDPath)
 	request = requestWithTestLogger(request)
@@ -140,6 +168,13 @@ func TestTasksHTTPHandlerUpdateTaskClearDueAt(t *testing.T) {
 	if !servicePatch.DueAt.Set {
 		t.Fatal("expected due_at patch to be set")
 	}
+	if serviceExpectedVersion != requestVersion {
+		t.Errorf(
+			"expected service version %d, got %d",
+			requestVersion,
+			serviceExpectedVersion,
+		)
+	}
 	if servicePatch.DueAt.Value != nil {
 		t.Errorf("expected nil due_at value, got %v", servicePatch.DueAt.Value)
 	}
@@ -151,6 +186,9 @@ func TestTasksHTTPHandlerUpdateTaskClearDueAt(t *testing.T) {
 	if response.DueAt != nil {
 		t.Errorf("expected cleared response due_at, got %v", response.DueAt)
 	}
+	if response.Version != responseVersion {
+		t.Errorf("expected response version %d, got %d", responseVersion, response.Version)
+	}
 }
 
 func TestTasksHTTPHandlerUpdateTaskInvalidRequest(t *testing.T) {
@@ -158,18 +196,23 @@ func TestTasksHTTPHandlerUpdateTaskInvalidRequest(t *testing.T) {
 		name string
 		body string
 	}{
-		{name: "empty patch", body: `{}`},
-		{name: "null title", body: `{"title":null}`},
-		{name: "null description", body: `{"description":null}`},
-		{name: "null done", body: `{"done":null}`},
-		{name: "null priority", body: `{"priority":null}`},
-		{name: "short title", body: `{"title":"ab"}`},
-		{name: "wrong done type", body: `{"done":"true"}`},
-		{name: "wrong priority type", body: `{"priority":1}`},
-		{name: "unsupported priority", body: `{"priority":"critical"}`},
-		{name: "invalid due_at", body: `{"due_at":"tomorrow"}`},
-		{name: "unknown field", body: `{"completed":true}`},
-		{name: "malformed JSON", body: `{"done":`},
+		{name: "missing version", body: `{"done":true}`},
+		{name: "null version", body: `{"version":null,"done":true}`},
+		{name: "zero version", body: `{"version":0,"done":true}`},
+		{name: "negative version", body: `{"version":-1,"done":true}`},
+		{name: "wrong version type", body: `{"version":"2","done":true}`},
+		{name: "empty patch", body: `{"version":2}`},
+		{name: "null title", body: `{"version":2,"title":null}`},
+		{name: "null description", body: `{"version":2,"description":null}`},
+		{name: "null done", body: `{"version":2,"done":null}`},
+		{name: "null priority", body: `{"version":2,"priority":null}`},
+		{name: "short title", body: `{"version":2,"title":"ab"}`},
+		{name: "wrong done type", body: `{"version":2,"done":"true"}`},
+		{name: "wrong priority type", body: `{"version":2,"priority":1}`},
+		{name: "unsupported priority", body: `{"version":2,"priority":"critical"}`},
+		{name: "invalid due_at", body: `{"version":2,"due_at":"tomorrow"}`},
+		{name: "unknown field", body: `{"version":2,"completed":true}`},
+		{name: "malformed JSON", body: `{"version":2,"done":`},
 	}
 
 	for _, tt := range tests {
@@ -178,6 +221,7 @@ func TestTasksHTTPHandlerUpdateTaskInvalidRequest(t *testing.T) {
 			service := tasksServiceStub{
 				updateTaskFunc: func(
 					_ context.Context,
+					_ int64,
 					_ int64,
 					_ core_domain.UpdateTask,
 				) (core_domain.Task, error) {
@@ -217,6 +261,7 @@ func TestTasksHTTPHandlerUpdateTaskInvalidID(t *testing.T) {
 		updateTaskFunc: func(
 			_ context.Context,
 			_ int64,
+			_ int64,
 			_ core_domain.UpdateTask,
 		) (core_domain.Task, error) {
 			serviceCalled = true
@@ -226,7 +271,7 @@ func TestTasksHTTPHandlerUpdateTaskInvalidID(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPatch,
 		"/api/v1/tasks/task",
-		strings.NewReader(`{"done":true}`),
+		strings.NewReader(`{"version":2,"done":true}`),
 	)
 	request.SetPathValue("id", "task")
 	request = requestWithTestLogger(request)
@@ -247,6 +292,7 @@ func TestTasksHTTPHandlerUpdateTaskNotFound(t *testing.T) {
 		updateTaskFunc: func(
 			_ context.Context,
 			_ int64,
+			_ int64,
 			_ core_domain.UpdateTask,
 		) (core_domain.Task, error) {
 			return core_domain.Task{}, core_errors.ErrNotFound
@@ -256,7 +302,7 @@ func TestTasksHTTPHandlerUpdateTaskNotFound(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPatch,
 		"/api/v1/tasks/"+taskIDPath,
-		strings.NewReader(`{"done":true}`),
+		strings.NewReader(`{"version":2,"done":true}`),
 	)
 	request.SetPathValue("id", taskIDPath)
 	request = requestWithTestLogger(request)
@@ -273,10 +319,49 @@ func TestTasksHTTPHandlerUpdateTaskNotFound(t *testing.T) {
 	}
 }
 
+func TestTasksHTTPHandlerUpdateTaskConflict(t *testing.T) {
+	service := tasksServiceStub{
+		updateTaskFunc: func(
+			_ context.Context,
+			_ int64,
+			_ int64,
+			_ core_domain.UpdateTask,
+		) (core_domain.Task, error) {
+			return core_domain.Task{}, core_errors.ErrConflict
+		},
+	}
+
+	taskIDPath := strconv.FormatInt(defaultTaskID, 10)
+	request := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/v1/tasks/"+taskIDPath,
+		strings.NewReader(`{"version":2,"done":true}`),
+	)
+	request.SetPathValue("id", taskIDPath)
+	request = requestWithTestLogger(request)
+	recorder := httptest.NewRecorder()
+
+	NewTasksHTTPHandler(service).UpdateTask(recorder, request)
+
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf(
+			"expected status %d, got %d: %s",
+			http.StatusConflict,
+			recorder.Code,
+			recorder.Body.String(),
+		)
+	}
+	response := decodeErrorResponse(t, recorder)
+	if response.Error != core_errors.ErrConflict.Error() {
+		t.Errorf("expected error %q, got %q", core_errors.ErrConflict, response.Error)
+	}
+}
+
 func TestTasksHTTPHandlerUpdateTaskServiceError(t *testing.T) {
 	service := tasksServiceStub{
 		updateTaskFunc: func(
 			_ context.Context,
+			_ int64,
 			_ int64,
 			_ core_domain.UpdateTask,
 		) (core_domain.Task, error) {
@@ -287,7 +372,7 @@ func TestTasksHTTPHandlerUpdateTaskServiceError(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPatch,
 		"/api/v1/tasks/"+taskIDPath,
-		strings.NewReader(`{"done":true}`),
+		strings.NewReader(`{"version":2,"done":true}`),
 	)
 	request.SetPathValue("id", taskIDPath)
 	request = requestWithTestLogger(request)

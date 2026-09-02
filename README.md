@@ -126,13 +126,18 @@ curl http://localhost:5050/api/v1/tasks/1
 ```bash
 curl -i -X PATCH http://localhost:5050/api/v1/tasks/1 \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Buy groceries today","done":true,"priority":"high","due_at":"2026-09-15T12:00:00Z"}'
+  -d '{"version":1,"title":"Buy groceries today","done":true,"priority":"high","due_at":"2026-09-15T12:00:00Z"}'
 ```
 
 В PATCH-запросе можно передать одно или несколько полей: `title`, `description`,
 `done`, `priority` и `due_at`. Пропущенные поля останутся без изменений. Чтобы
-повторно открыть выполненную задачу, передайте `{"done":false}`. Чтобы удалить
-дедлайн, передайте `{"due_at":null}`.
+повторно открыть выполненную задачу, передайте `{"version":2,"done":false}`.
+Чтобы удалить дедлайн, передайте `{"version":2,"due_at":null}`.
+
+Поле `version` обязательно для PATCH и должно совпадать с текущей версией задачи
+из ответа API. После успешного обновления версия увеличивается на единицу. Если
+клиент отправит устаревшую версию, сервис вернёт `409 Conflict`, не изменяя
+задачу.
 
 Удалить задачу:
 

@@ -15,6 +15,7 @@ type TaskDTOResponse struct {
 	CreatedAt   time.Time                `json:"created_at"`
 	UpdatedAt   time.Time                `json:"updated_at"`
 	DueAt       *time.Time               `json:"due_at" format:"date-time"`
+	Version     int64                    `json:"version" minimum:"1" example:"3"`
 }
 
 func taskDTOFromDomain(task core_domain.Task) TaskDTOResponse {
@@ -27,6 +28,7 @@ func taskDTOFromDomain(task core_domain.Task) TaskDTOResponse {
 		CreatedAt:   task.CreatedAt,
 		UpdatedAt:   task.UpdatedAt,
 		DueAt:       task.DueAt,
+		Version:     task.Version,
 	}
 }
 

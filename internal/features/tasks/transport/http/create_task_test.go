@@ -16,6 +16,8 @@ import (
 )
 
 func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
+	const expectedVersion int64 = 1
+
 	now := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
 	dueAt := time.Date(2027, time.January, 10, 12, 0, 0, 0, time.UTC)
 
@@ -36,6 +38,7 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 				now,
 				now,
 				task.DueAt,
+				expectedVersion,
 			)
 			return created, nil
 		},
@@ -88,6 +91,13 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 			serviceArgument.ID,
 		)
 	}
+	if serviceArgument.Version != core_domain.UninitializedVersion {
+		t.Errorf(
+			"expected uninitialized service task version %d, got %d",
+			core_domain.UninitializedVersion,
+			serviceArgument.Version,
+		)
+	}
 	if serviceArgument.Done {
 		t.Error("expected uncompleted service task")
 	}
@@ -109,6 +119,9 @@ func TestTasksHTTPHandlerCreateTaskSuccess(t *testing.T) {
 
 	if response.ID != defaultTaskID {
 		t.Errorf("expected task ID %d, got %d", defaultTaskID, response.ID)
+	}
+	if response.Version != expectedVersion {
+		t.Errorf("expected response version %d, got %d", expectedVersion, response.Version)
 	}
 
 	if response.Title != "Buy groceries" {

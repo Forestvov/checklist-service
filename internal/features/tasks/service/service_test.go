@@ -29,7 +29,8 @@ type taskRepositoryStub struct {
 	updateTaskFunc func(
 		ctx context.Context,
 		taskID int64,
-		taskUpdate core_domain.Task,
+		expectedVersion int64,
+		taskUpdate core_domain.UpdateTask,
 	) (core_domain.Task, error)
 
 	deleteTaskFunc func(
@@ -63,9 +64,10 @@ func (s taskRepositoryStub) GetTask(
 func (s taskRepositoryStub) UpdateTask(
 	ctx context.Context,
 	taskID int64,
-	taskUpdate core_domain.Task,
+	expectedVersion int64,
+	taskUpdate core_domain.UpdateTask,
 ) (core_domain.Task, error) {
-	return s.updateTaskFunc(ctx, taskID, taskUpdate)
+	return s.updateTaskFunc(ctx, taskID, expectedVersion, taskUpdate)
 }
 
 func (s taskRepositoryStub) DeleteTask(

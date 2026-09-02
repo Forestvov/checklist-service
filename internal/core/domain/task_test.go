@@ -72,6 +72,9 @@ func TestTaskValidate(t *testing.T) {
 func TestNewTaskUninitializedDefaults(t *testing.T) {
 	task := NewTaskUninitialized("Task", nil, nil, nil)
 
+	if task.Version != UninitializedVersion {
+		t.Errorf("expected uninitialized version %d, got %d", UninitializedVersion, task.Version)
+	}
 	if task.Description != "" {
 		t.Fatalf("expected empty description, got %q", task.Description)
 	}
@@ -215,6 +218,7 @@ func TestTaskApplyUpdate(t *testing.T) {
 		createdAt,
 		updatedAt,
 		nil,
+		3,
 	)
 
 	patch := NewUpdateTask(
@@ -247,6 +251,9 @@ func TestTaskApplyUpdate(t *testing.T) {
 	if task.ID != 1 {
 		t.Errorf("unexpected ID: got %d, want 1", task.ID)
 	}
+	if task.Version != 3 {
+		t.Errorf("version changed: got %d, want 3", task.Version)
+	}
 	if !task.CreatedAt.Equal(createdAt) {
 		t.Errorf("created_at changed: got %s, want %s", task.CreatedAt, createdAt)
 	}
@@ -270,6 +277,7 @@ func TestTaskApplyUpdateClearsDueAt(t *testing.T) {
 		time.Now().Add(-2*time.Hour),
 		time.Now().Add(-time.Hour),
 		&dueAt,
+		3,
 	)
 	patch := NewUpdateTask(
 		Nullable[string]{},
@@ -299,6 +307,7 @@ func TestTaskApplyPartialUpdate(t *testing.T) {
 		time.Now().Add(-2*time.Hour),
 		updatedAt,
 		&dueAt,
+		3,
 	)
 
 	patch := NewUpdateTask(
@@ -351,6 +360,7 @@ func TestTaskApplyInvalidUpdateDoesNotMutateTask(t *testing.T) {
 		time.Now().Add(-2*time.Hour),
 		time.Now().Add(-time.Hour),
 		nil,
+		3,
 	)
 	original := task
 

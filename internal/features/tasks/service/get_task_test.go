@@ -21,6 +21,7 @@ func TestTaskServiceGetTaskSuccess(t *testing.T) {
 		now,
 		now,
 		nil,
+		3,
 	)
 
 	var repositoryTaskID int64

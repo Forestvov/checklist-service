@@ -38,6 +38,7 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			now,
 			now,
 			&dueAt,
+			3,
 		),
 
 		core_domain.NewTask(
@@ -49,6 +50,7 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			now,
 			now,
 			nil,
+			7,
 		),
 	}
 
@@ -143,6 +145,13 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			response.Data[0].ID,
 		)
 	}
+	if response.Data[0].Version != expectedTasks[0].Version {
+		t.Errorf(
+			"expected first task version %d, got %d",
+			expectedTasks[0].Version,
+			response.Data[0].Version,
+		)
+	}
 	if response.Data[0].Priority != expectedTasks[0].Priority {
 		t.Errorf(
 			"expected first task priority %q, got %q",
@@ -159,6 +168,13 @@ func TestTasksHTTPHandlerGetTasksSuccess(t *testing.T) {
 			"expected second task ID %d, got %d",
 			expectedTasks[1].ID,
 			response.Data[1].ID,
+		)
+	}
+	if response.Data[1].Version != expectedTasks[1].Version {
+		t.Errorf(
+			"expected second task version %d, got %d",
+			expectedTasks[1].Version,
+			response.Data[1].Version,
 		)
 	}
 	if response.Data[1].Priority != expectedTasks[1].Priority {

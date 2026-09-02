@@ -11,156 +11,145 @@ import (
 )
 
 func TestTaskServiceUpdateTaskSuccess(t *testing.T) {
-	createdAt := time.Date(2026, time.April, 14, 12, 0, 0, 0, time.UTC)
-	dueAt := createdAt.Add(48 * time.Hour)
-	original := core_domain.NewTask(
+	const (
+		expectedVersion int64 = 3
+		resultVersion   int64 = 4
+	)
+
+	title := "Updated task"
+	patch := core_domain.NewUpdateTask(
+		setDomainNullable(title),
+		core_domain.Nullable[string]{},
+		core_domain.Nullable[bool]{},
+		core_domain.Nullable[core_domain.TaskPriority]{},
+		core_domain.Nullable[time.Time]{},
+	)
+
+	now := time.Date(2026, time.April, 14, 12, 0, 0, 0, time.UTC)
+	expectedTask := core_domain.NewTask(
 		defaultTaskID,
-		"Buy groceries",
+		title,
 		"Milk and bread",
 		false,
 		core_domain.DefaultTaskPriority,
-		createdAt,
-		createdAt,
+		now,
+		now.Add(time.Hour),
 		nil,
+		resultVersion,
 	)
-
-	newDescription := "Milk, bread and eggs"
-	done := true
-	patch := core_domain.NewUpdateTask(
-		core_domain.Nullable[string]{},
-		setDomainNullable(newDescription),
-		setDomainNullable(done),
-		setDomainNullable(core_domain.TaskPriorityHigh),
-		setDomainNullable(dueAt),
-	)
-
-	repositoryResult := original
-	repositoryResult.Description = newDescription
-	repositoryResult.Done = done
-	repositoryResult.Priority = core_domain.TaskPriorityHigh
-	repositoryResult.DueAt = &dueAt
-	repositoryResult.UpdatedAt = createdAt.Add(time.Hour)
 
 	var (
-		getTaskID       int64
-		updateTaskID    int64
-		updateTaskValue core_domain.Task
+		repositoryTaskID          int64
+		repositoryExpectedVersion int64
+		repositoryPatch           core_domain.UpdateTask
 	)
 
 	repository := taskRepositoryStub{
-		getTaskFunc: func(_ context.Context, taskID int64) (core_domain.Task, error) {
-			getTaskID = taskID
-			return original, nil
-		},
 		updateTaskFunc: func(
 			_ context.Context,
 			taskID int64,
-			task core_domain.Task,
+			version int64,
+			taskUpdate core_domain.UpdateTask,
 		) (core_domain.Task, error) {
-			updateTaskID = taskID
-			updateTaskValue = task
-			return repositoryResult, nil
+			repositoryTaskID = taskID
+			repositoryExpectedVersion = version
+			repositoryPatch = taskUpdate
+			return expectedTask, nil
 		},
 	}
 
-	beforeUpdate := time.Now()
 	actual, err := NewTaskService(repository).UpdateTask(
 		context.Background(),
 		defaultTaskID,
+		expectedVersion,
 		patch,
 	)
-	afterUpdate := time.Now()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if getTaskID != defaultTaskID || updateTaskID != defaultTaskID {
+	if repositoryTaskID != defaultTaskID {
+		t.Errorf("expected repository task ID %d, got %d", defaultTaskID, repositoryTaskID)
+	}
+	if repositoryExpectedVersion != expectedVersion {
 		t.Errorf(
-			"expected task ID %d, got get=%d update=%d",
-			defaultTaskID,
-			getTaskID,
-			updateTaskID,
+			"expected repository version %d, got %d",
+			expectedVersion,
+			repositoryExpectedVersion,
 		)
 	}
-	if updateTaskValue.Title != original.Title {
-		t.Errorf("expected unchanged title %q, got %q", original.Title, updateTaskValue.Title)
+	if !repositoryPatch.Title.Set ||
+		repositoryPatch.Title.Value == nil ||
+		*repositoryPatch.Title.Value != title {
+		t.Errorf("unexpected repository patch: %+v", repositoryPatch)
 	}
-	if updateTaskValue.Description != newDescription {
-		t.Errorf("expected description %q, got %q", newDescription, updateTaskValue.Description)
-	}
-	if !updateTaskValue.Done {
-		t.Error("expected done to be true")
-	}
-	if updateTaskValue.Priority != core_domain.TaskPriorityHigh {
-		t.Errorf("expected priority %q, got %q", core_domain.TaskPriorityHigh, updateTaskValue.Priority)
-	}
-	if updateTaskValue.DueAt == nil || !updateTaskValue.DueAt.Equal(dueAt) {
-		t.Errorf("expected due_at %v, got %v", dueAt, updateTaskValue.DueAt)
-	}
-	if updateTaskValue.UpdatedAt.Before(beforeUpdate) || updateTaskValue.UpdatedAt.After(afterUpdate) {
-		t.Errorf("expected updated_at between %v and %v, got %v", beforeUpdate, afterUpdate, updateTaskValue.UpdatedAt)
-	}
-	if actual != repositoryResult {
-		t.Errorf("expected task %+v, got %+v", repositoryResult, actual)
+	if actual != expectedTask {
+		t.Errorf("expected task %+v, got %+v", expectedTask, actual)
 	}
 }
 
-func TestTaskServiceUpdateTaskGetTaskError(t *testing.T) {
-	repositoryError := errors.New("database unavailable")
-	updateCalled := false
-	repository := taskRepositoryStub{
-		getTaskFunc: func(_ context.Context, _ int64) (core_domain.Task, error) {
-			return core_domain.Task{}, repositoryError
-		},
-		updateTaskFunc: func(
-			_ context.Context,
-			_ int64,
-			_ core_domain.Task,
-		) (core_domain.Task, error) {
-			updateCalled = true
-			return core_domain.Task{}, nil
-		},
+func TestTaskServiceUpdateTaskInvalidVersion(t *testing.T) {
+	title := "Updated task"
+	patch := core_domain.NewUpdateTask(
+		setDomainNullable(title),
+		core_domain.Nullable[string]{},
+		core_domain.Nullable[bool]{},
+		core_domain.Nullable[core_domain.TaskPriority]{},
+		core_domain.Nullable[time.Time]{},
+	)
+
+	tests := []struct {
+		name    string
+		version int64
+	}{
+		{name: "zero", version: 0},
+		{name: "negative", version: -1},
 	}
 
-	actual, err := NewTaskService(repository).UpdateTask(
-		context.Background(),
-		defaultTaskID,
-		core_domain.UpdateTask{},
-	)
-	if !errors.Is(err, repositoryError) {
-		t.Fatalf("expected repository error, got %v", err)
-	}
-	if updateCalled {
-		t.Fatal("update must not be called when getting the task fails")
-	}
-	if actual != (core_domain.Task{}) {
-		t.Errorf("expected empty task, got %+v", actual)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repositoryCalled := false
+			repository := taskRepositoryStub{
+				updateTaskFunc: func(
+					_ context.Context,
+					_ int64,
+					_ int64,
+					_ core_domain.UpdateTask,
+				) (core_domain.Task, error) {
+					repositoryCalled = true
+					return core_domain.Task{}, nil
+				},
+			}
+
+			actual, err := NewTaskService(repository).UpdateTask(
+				context.Background(),
+				defaultTaskID,
+				tt.version,
+				patch,
+			)
+			if !errors.Is(err, core_errors.ErrInvalidArgument) {
+				t.Fatalf("expected ErrInvalidArgument, got %v", err)
+			}
+			if repositoryCalled {
+				t.Fatal("repository must not be called for an invalid version")
+			}
+			if actual != (core_domain.Task{}) {
+				t.Errorf("expected empty task, got %+v", actual)
+			}
+		})
 	}
 }
 
 func TestTaskServiceUpdateTaskInvalidPatch(t *testing.T) {
-	original := core_domain.NewTask(
-		defaultTaskID,
-		"Buy groceries",
-		"Milk and bread",
-		false,
-		core_domain.DefaultTaskPriority,
-		time.Now(),
-		time.Now(),
-		nil,
-	)
-
-	updateCalled := false
+	repositoryCalled := false
 	repository := taskRepositoryStub{
-		getTaskFunc: func(_ context.Context, _ int64) (core_domain.Task, error) {
-			return original, nil
-		},
 		updateTaskFunc: func(
 			_ context.Context,
 			_ int64,
-			_ core_domain.Task,
+			_ int64,
+			_ core_domain.UpdateTask,
 		) (core_domain.Task, error) {
-			updateCalled = true
+			repositoryCalled = true
 			return core_domain.Task{}, nil
 		},
 	}
@@ -168,13 +157,14 @@ func TestTaskServiceUpdateTaskInvalidPatch(t *testing.T) {
 	actual, err := NewTaskService(repository).UpdateTask(
 		context.Background(),
 		defaultTaskID,
+		3,
 		core_domain.UpdateTask{},
 	)
 	if !errors.Is(err, core_errors.ErrInvalidArgument) {
-		t.Fatalf("expected invalid argument error, got %v", err)
+		t.Fatalf("expected ErrInvalidArgument, got %v", err)
 	}
-	if updateCalled {
-		t.Fatal("repository update must not be called for an invalid patch")
+	if repositoryCalled {
+		t.Fatal("repository must not be called for an invalid patch")
 	}
 	if actual != (core_domain.Task{}) {
 		t.Errorf("expected empty task, got %+v", actual)
@@ -183,26 +173,21 @@ func TestTaskServiceUpdateTaskInvalidPatch(t *testing.T) {
 
 func TestTaskServiceUpdateTaskRepositoryError(t *testing.T) {
 	repositoryError := errors.New("database unavailable")
-	original := core_domain.NewTask(
-		defaultTaskID,
-		"Buy groceries",
-		"Milk and bread",
-		false,
-		core_domain.DefaultTaskPriority,
-		time.Now(),
-		time.Now(),
-		nil,
+	title := "Updated title"
+	patch := core_domain.NewUpdateTask(
+		setDomainNullable(title),
+		core_domain.Nullable[string]{},
+		core_domain.Nullable[bool]{},
+		core_domain.Nullable[core_domain.TaskPriority]{},
+		core_domain.Nullable[time.Time]{},
 	)
 
-	title := "Updated title"
 	repository := taskRepositoryStub{
-		getTaskFunc: func(_ context.Context, _ int64) (core_domain.Task, error) {
-			return original, nil
-		},
 		updateTaskFunc: func(
 			_ context.Context,
 			_ int64,
-			_ core_domain.Task,
+			_ int64,
+			_ core_domain.UpdateTask,
 		) (core_domain.Task, error) {
 			return core_domain.Task{}, repositoryError
 		},
@@ -211,13 +196,8 @@ func TestTaskServiceUpdateTaskRepositoryError(t *testing.T) {
 	actual, err := NewTaskService(repository).UpdateTask(
 		context.Background(),
 		defaultTaskID,
-		core_domain.NewUpdateTask(
-			setDomainNullable(title),
-			core_domain.Nullable[string]{},
-			core_domain.Nullable[bool]{},
-			core_domain.Nullable[core_domain.TaskPriority]{},
-			core_domain.Nullable[time.Time]{},
-		),
+		3,
+		patch,
 	)
 	if !errors.Is(err, repositoryError) {
 		t.Fatalf("expected repository error, got %v", err)

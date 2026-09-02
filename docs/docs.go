@@ -238,7 +238,7 @@ const docTemplate = `{
                 }
             },
             "patch": {
-                "description": "Partially updates the task with the specified integer identifier.\nSend at least one of title, description, done, priority, or due_at. Omitted fields remain unchanged.\nNull is allowed only for due_at and removes the current deadline.\nThe title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored. The description must not exceed 5000 Unicode characters.",
+                "description": "Partially updates the task with the specified integer identifier.\nVersion is required and must match the current task version.\nA successful update increments version by one.\nSend at least one of title, description, done, priority, or due_at.\nOmitted fields remain unchanged.\nNull is allowed only for due_at and removes the current deadline.\nThe title must contain 3–255 Unicode characters after trimming. The description must not exceed 5000 Unicode characters.",
                 "consumes": [
                     "application/json"
                 ],
@@ -258,7 +258,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Fields to update",
+                        "description": "Fields to update and expected version",
                         "name": "payload",
                         "in": "body",
                         "required": true,
@@ -275,13 +275,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Malformed JSON, invalid task identifier, or request validation failed",
+                        "description": "Malformed JSON, invalid task identifier or version, or request validation failed",
                         "schema": {
                             "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Task not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Task version conflict",
                         "schema": {
                             "$ref": "#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse"
                         }
@@ -421,6 +427,11 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 3
                 }
             }
         },
@@ -460,6 +471,11 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 3
                 }
             }
         },
@@ -513,11 +529,19 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 3
                 }
             }
         },
         "internal_features_tasks_transport_http.UpdateTaskRequest": {
             "type": "object",
+            "required": [
+                "version"
+            ],
             "properties": {
                 "description": {
                     "type": "string",
@@ -547,6 +571,11 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 3,
                     "example": "Buy groceries"
+                },
+                "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 3
                 }
             }
         },
@@ -586,6 +615,11 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 3
                 }
             }
         }

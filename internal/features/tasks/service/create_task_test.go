@@ -31,6 +31,7 @@ func TestTaskServiceCreateTaskSuccess(t *testing.T) {
 		now,
 		now,
 		&dueAt,
+		1,
 	)
 
 	var repositoryArgument core_domain.Task

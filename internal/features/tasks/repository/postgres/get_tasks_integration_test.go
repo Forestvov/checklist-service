@@ -28,6 +28,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			baseTime.Add(time.Minute),
 			baseTime.Add(3*time.Minute),
 			&lateDueAt,
+			core_domain.UninitializedVersion,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -38,6 +39,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			baseTime.Add(2*time.Minute),
 			baseTime.Add(time.Minute),
 			nil,
+			core_domain.UninitializedVersion,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -48,6 +50,7 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			baseTime.Add(3*time.Minute),
 			baseTime.Add(2*time.Minute),
 			&earlyDueAt,
+			core_domain.UninitializedVersion,
 		),
 	}
 
@@ -147,6 +150,14 @@ func TestTasksRepositoryGetTasksSorting(t *testing.T) {
 			actualIDs := make([]int64, 0, len(result.Items))
 			for _, task := range result.Items {
 				actualIDs = append(actualIDs, task.ID)
+				if task.Version != initialTaskVersion {
+					t.Errorf(
+						"task %d: unexpected version: got %d, want %d",
+						task.ID,
+						task.Version,
+						initialTaskVersion,
+					)
+				}
 			}
 			if !slices.Equal(actualIDs, tt.expectedIDs) {
 				t.Errorf("unexpected task order: got %v, want %v", actualIDs, tt.expectedIDs)
@@ -179,10 +190,18 @@ func TestTasksRepositoryGetTasksDoneFilter(t *testing.T) {
 
 	for _, index := range []int{1, 3} {
 		completed := createdTasks[index]
-		completed.Done = true
-		completed.UpdatedAt = completed.UpdatedAt.Add(time.Second)
-
-		updated, err := repository.UpdateTask(ctx, completed.ID, completed)
+		updated, err := repository.UpdateTask(
+			ctx,
+			completed.ID,
+			completed.Version,
+			core_domain.NewUpdateTask(
+				core_domain.Nullable[string]{},
+				core_domain.Nullable[string]{},
+				setRepositoryNullable(true),
+				core_domain.Nullable[core_domain.TaskPriority]{},
+				core_domain.Nullable[time.Time]{},
+			),
+		)
 		if err != nil {
 			t.Fatalf("complete task %d: %v", completed.ID, err)
 		}
@@ -279,6 +298,7 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			baseTime.Add(time.Minute),
 			baseTime.Add(time.Minute),
 			nil,
+			core_domain.UninitializedVersion,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -289,6 +309,7 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			baseTime.Add(2*time.Minute),
 			baseTime.Add(2*time.Minute),
 			nil,
+			core_domain.UninitializedVersion,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -299,6 +320,7 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			baseTime.Add(3*time.Minute),
 			baseTime.Add(3*time.Minute),
 			nil,
+			core_domain.UninitializedVersion,
 		),
 		core_domain.NewTask(
 			core_domain.UninitializedID,
@@ -309,6 +331,7 @@ func TestTasksRepositoryGetTasksPriorityFilter(t *testing.T) {
 			baseTime.Add(4*time.Minute),
 			baseTime.Add(4*time.Minute),
 			nil,
+			core_domain.UninitializedVersion,
 		),
 	}
 

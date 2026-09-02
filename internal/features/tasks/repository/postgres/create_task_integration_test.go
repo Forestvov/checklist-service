@@ -33,6 +33,9 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 	if created.ID <= 0 {
 		t.Fatalf("unexpected task ID: %d", created.ID)
 	}
+	if created.Version != initialTaskVersion {
+		t.Errorf("unexpected initial version: got %d, want %d", created.Version, initialTaskVersion)
+	}
 
 	if created.Title != input.Title {
 		t.Errorf("unexpected title: got %q, want %q", created.Title, input.Title)
@@ -69,6 +72,9 @@ func TestTasksRepositoryCreateTask(t *testing.T) {
 
 	if stored.ID != created.ID {
 		t.Errorf("unexpected stored ID: got %d, want %d", stored.ID, created.ID)
+	}
+	if stored.Version != created.Version {
+		t.Errorf("unexpected stored version: got %d, want %d", stored.Version, created.Version)
 	}
 	if stored.Title != created.Title {
 		t.Errorf("unexpected stored title: got %q, want %q", stored.Title, created.Title)

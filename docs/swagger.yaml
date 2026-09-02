@@ -89,6 +89,10 @@ definitions:
         type: string
       updated_at:
         type: string
+      version:
+        example: 3
+        minimum: 1
+        type: integer
     type: object
   internal_features_tasks_transport_http.GetTaskResponse:
     properties:
@@ -114,6 +118,10 @@ definitions:
         type: string
       updated_at:
         type: string
+      version:
+        example: 3
+        minimum: 1
+        type: integer
     type: object
   internal_features_tasks_transport_http.GetTasksResponse:
     properties:
@@ -148,6 +156,10 @@ definitions:
         type: string
       updated_at:
         type: string
+      version:
+        example: 3
+        minimum: 1
+        type: integer
     type: object
   internal_features_tasks_transport_http.UpdateTaskRequest:
     properties:
@@ -174,6 +186,12 @@ definitions:
         maxLength: 255
         minLength: 3
         type: string
+      version:
+        example: 3
+        minimum: 1
+        type: integer
+    required:
+    - version
     type: object
   internal_features_tasks_transport_http.UpdateTaskResponse:
     properties:
@@ -199,6 +217,10 @@ definitions:
         type: string
       updated_at:
         type: string
+      version:
+        example: 3
+        minimum: 1
+        type: integer
     type: object
 info:
   contact: {}
@@ -375,16 +397,19 @@ paths:
       - application/json
       description: |-
         Partially updates the task with the specified integer identifier.
-        Send at least one of title, description, done, priority, or due_at. Omitted fields remain unchanged.
+        Version is required and must match the current task version.
+        A successful update increments version by one.
+        Send at least one of title, description, done, priority, or due_at.
+        Omitted fields remain unchanged.
         Null is allowed only for due_at and removes the current deadline.
-        The title must contain 3–255 Unicode characters after leading and trailing whitespace is ignored. The description must not exceed 5000 Unicode characters.
+        The title must contain 3–255 Unicode characters after trimming. The description must not exceed 5000 Unicode characters.
       parameters:
       - description: Task identifier
         in: path
         name: id
         required: true
         type: integer
-      - description: Fields to update
+      - description: Fields to update and expected version
         in: body
         name: payload
         required: true
@@ -398,12 +423,16 @@ paths:
           schema:
             $ref: '#/definitions/internal_features_tasks_transport_http.UpdateTaskResponse'
         "400":
-          description: Malformed JSON, invalid task identifier, or request validation
-            failed
+          description: Malformed JSON, invalid task identifier or version, or request
+            validation failed
           schema:
             $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
         "404":
           description: Task not found
+          schema:
+            $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
+        "409":
+          description: Task version conflict
           schema:
             $ref: '#/definitions/github_com_Forestvov_checklist-service_internal_core_transport_http_response.ErrorResponse'
         "500":

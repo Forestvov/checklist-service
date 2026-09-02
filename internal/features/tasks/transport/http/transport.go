@@ -33,6 +33,7 @@ type TasksService interface {
 	UpdateTask(
 		ctx context.Context,
 		taskID int64,
+		expectedVersion int64,
 		taskUpdate core_domain.UpdateTask,
 	) (core_domain.Task, error)
 

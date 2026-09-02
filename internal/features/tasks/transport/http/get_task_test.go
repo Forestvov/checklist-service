@@ -16,6 +16,8 @@ import (
 )
 
 func TestTasksHTTPHandlerGetTaskSuccess(t *testing.T) {
+	const expectedVersion int64 = 3
+
 	now := time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC)
 	dueAt := now.Add(24 * time.Hour)
 
@@ -28,6 +30,7 @@ func TestTasksHTTPHandlerGetTaskSuccess(t *testing.T) {
 		now,
 		now,
 		&dueAt,
+		expectedVersion,
 	)
 
 	var serviceTaskID int64
@@ -84,6 +87,13 @@ func TestTasksHTTPHandlerGetTaskSuccess(t *testing.T) {
 			"expected response task ID %d, got %d",
 			expectedTask.ID,
 			response.ID,
+		)
+	}
+	if response.Version != expectedTask.Version {
+		t.Errorf(
+			"expected response version %d, got %d",
+			expectedTask.Version,
+			response.Version,
 		)
 	}
 

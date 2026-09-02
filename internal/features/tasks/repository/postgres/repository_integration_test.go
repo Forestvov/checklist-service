@@ -18,6 +18,7 @@ const (
 	testSetupTimeout     = 2 * time.Minute
 	testOperationTimeout = 10 * time.Second
 	testCleanupTimeout   = 5 * time.Second
+	initialTaskVersion   = int64(1)
 )
 
 func TestMain(m *testing.M) {
